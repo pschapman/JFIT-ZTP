@@ -764,7 +764,7 @@ def setup():
             ans_ords = get_ordinals(ans_set, ans_menu, ztp_var, prompt)
         data_map.update({ztp_var: ans_ords})
     
-    print(data_map)
+    # print(data_map)
     print(constants.INFO_SWITCH_STACKS)
     prompt = 'Will this ZTP instance provision switch stacks? (Y/n) > '
     response = pyip.inputYesNo(prompt=prompt, blank=True)
