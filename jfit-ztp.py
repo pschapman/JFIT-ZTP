@@ -944,6 +944,6 @@ def main():
 if __name__ == '__main__':
     global config_file, test_mode
     config_file = 'datamap.json'
-    test_mode = True
+    test_mode = False
     main()
 
