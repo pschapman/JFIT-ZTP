@@ -16,7 +16,7 @@ freeZTP has been instrumental for time savings in large scale deployments of Cis
 **Proposed Solution -**  Simply send the correct number of each device model to a site.  Have the field team install equipment according to documented plans and use ZTP to deploy the appropriate configuration.  This is where JFIT-ZTP comes in.  The field team will create the serial-to-hostname mapping by entering the data in JotForm from their smartphones.  JFIT-ZTP will pick up the new entries from JotForm and apply the configuration to ZTP automatically. (NOTE: DOA failure rates are typically 0.1%, so the field team should be supplied with spares to ensure completion on the first visit.)
 
 ## Mechanism
-JFIT-ZTP allows for CLI style or external keystore (CSV) style configuration of ZTP. In CLI style, Jotform data is mapped to CLI commands (see image below).  In CSV style, Jotform data is mapped to fields in the external keystore.  After updates are made to ZTP, the ZTP service is automatically restarted.
+JFIT-ZTP allows for CLI style or external keystore (CSV) style configuration of ZTP. In CLI style, Jotform data is mapped to CLI commands (see image below).  In CSV style, Jotform data is mapped to fields in the external keystore.  After updates are made to ZTP, the ZTP service is automatically restarted. Custom variables can be used by the Jinja2 template engine to make dynamic changes to device configurations.
 
 After updates to ZTP are executed the JotForm submissions are marked "read".  This limits the returned data for each execution of JFIT-ZTP and speeds up processing.
 
@@ -29,17 +29,25 @@ After updates to ZTP are executed the JotForm submissions are marked "read".  Th
 
 
 ## Installation
-1. Direct copy files or use GitHub repo to ZTP server
-2. Log in with same account that ZTP is running under
-3. Run the following commands
-```
-sudo su
-chroot <path>/jfit-ztp
-cd <path>/jfit-ztp
-pip install pyinputplus
-python jfit-ztp.py setup
-```
-4. Step through setup wizard.
+This procedure assumes that you have already installed freeZTP and it is running as expected.
+1. Log in with same account that ZTP is running under
+2. Elevate your permissions
+   1. `sudo su`
+3. Install PyInputPlus (Used for setup wizard only.)
+   1. `pip install pyinputplus`
+4. Edit PyInputPlus module (Only if running python 2.7 (default for current ZTP version))
+    1.  `nano /usr/local/lib/python2.7/dist-packages/pyinputplus/__init__.py`
+    2.  Go to line 134
+    3.  Change `(prompt, str)` to `(prompt, (str, unicode))`
+    4.  Go to line 156
+    5.  Change `input()` to `raw_input()`
+5. Directly copy files to ZTP server or clone GitHub repo (shown)
+   1. `git clone https://github.com/pschapman/jfit-ztp`
+6. Change working directory to jfit-ztp
+   1. `cd jfit-ztp`
+7. Run JFIT-ZTP setup
+   1. `python jfit-ztp.py setup`
+8. Carefully read prompts and answer accurately
    1. Provide your API Key
    2. Select Form that is used for this project from list
    3. Input delimiter for compound answers
@@ -52,9 +60,13 @@ python jfit-ztp.py setup
    10. Select whether ZTP will be building stacks
    11. Select answer for each stack member that contains the device ID (idarray)
    12. Select whether additional Custom Variables should be mapped
-5.  Configure JFIT-ZTP to run as a cron job
-    1.  NOTE: Once per minute is recommended for active implementation.
-    2.  WARNING: JotForm limits API calls per day, so verify you will not exceed your limit before configuring your cron job.
+9. Configure JFIT-ZTP to run as a cron job
+    1.  `crontab -e`
+    2.  Add: `* * * * * cd /<path>/jfit-ztp&&python jfit-ztp.py`
+    3.  Save update and exit
+    4.  Restart cron service: `systemctl restart cron`
+    5.  **NOTE:** Once per minute is recommended for active implementation.
+    6.  **WARNING:** JotForm limits API calls per day, so verify you will not exceed your limit before configuring your cron job.
 
 ## Open Issues for v0.9 Beta
 - Python 2.7 imports JSON data fields as unicode strings.  This causes a vaidation issue on the "prompt" in PyInputPlus.  Current workaround is to hack PyInputPlus, adding unicode as a valid class for the prompt field.
