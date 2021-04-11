@@ -321,6 +321,9 @@ def mark_submissions_read(api_key, submission_ids):
         response = requests.request('POST', url, headers=headers, data=payload)
         if response.status_code != 200:
             err_set = err_set + '\r\n' + response.text
+            log.warning('HTTP response from Jotform not 200. Full response '
+                        'text:\r\n' + response.text + '\r\n\r\nActual status '
+                        'code: ' + str(response.status_code))
     
     # Error checking in calling code.
     if err_set:
@@ -930,10 +933,11 @@ def process_data():
                 log.info(str(len(cmd_set)) + 'Commands successfully sent to '
                          'freeZTP CLI')
                 response = mark_submissions_read(api_key, submission_ids)
-                if response:
+                if not response:
                     log.info('Submissions successfully marked as read.')
                 else:
                     log.warning('Submissions failed to be marked as read.')
+
         else:
             log.info('No data changes! ZTP not restarted.')
 
