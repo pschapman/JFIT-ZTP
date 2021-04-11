@@ -1,5 +1,6 @@
 # Test Files
 datamap.json
+jfit-ztp.log
 *.csv
 
 # Byte-compiled / optimized / DLL files

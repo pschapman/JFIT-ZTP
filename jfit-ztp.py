@@ -13,9 +13,7 @@ Open Caveats / Bugs / Limitations:
    i. userInput = raw_input()
  c. Data display in setup for "previous items" is framed in python structures
     and not textual.  Issue only occurs in Python 2. (PyInputPlus related)
-2. "newline=" in file write not available until Python 3.3.  Added Try for
-   backwards compatibility.  Required in Python 3 to resolve CRCRLF issue.
-3. Script only adds to or alters existing data.  Duplicate JotForm submissions
+2. Script only adds to or alters existing data.  Duplicate JotForm submissions
    will not remove unneeded commands / external keystore fields.  Resolution
    appears to be non-trivial.  Possible strategy of marking some datamap
    variables as "unprotected" and subject to automatic deletion.  May require
@@ -25,8 +23,7 @@ To Do List:
 1. Alter setup to show list of existing variables and allow individual update
    or delete.
 2. Automate configuration of cron job
-3. Add Logging
-4. Determine what happens if 'mark as read' fails for process_data
+3. Determine what happens if 'mark as read' fails for process_data
 """
 # Python native modules
 from os import path
@@ -34,12 +31,14 @@ import sys
 import subprocess
 import json
 import csv
+import logging
+import argparse
 if int(sys.version[:1]) == 3:
     from urllib.parse import quote
-    # LOG INFO
+    import_log = 'Imported URLLib.Parse for Python 3.'
 else:
     from urllib import quote
-    # LOG INFO
+    import_log = 'Imported URLLib for Python 2.'
 
 # External modules. Installed by freeztpInstaller.
 import requests
@@ -67,7 +66,7 @@ def submission_to_cli(ans_set, data_map):
     q_id = ans_set[value['qID']]
     ans_idx = value['index']
     keystore_id = get_answer_element(q_id, ans_idx)
-    # LOG DEBUG
+    log.info('Processing submission for Keystore ID: ' + keystore_id)
 
     for key, value in data_map.items():
         if 'keystore_id' in key:
@@ -78,7 +77,7 @@ def submission_to_cli(ans_set, data_map):
             device_id = get_answer_element(q_id, ans_idx)
             if device_id:
                 device_id_set.append(device_id)
-                # LOG DEBUG
+                log.debug('Device ID: ' + device_id)
         elif 'association' in key:
             q_id = ans_set[value['qID']]
             ans_idx = value['index']
@@ -86,7 +85,7 @@ def submission_to_cli(ans_set, data_map):
             if var_data:
                 cmd_set.append('ztp set association id ' + keystore_id
                                + ' template ' + var_data)
-                # LOG DEBUG
+                log.debug('Association ID: ' + var_data)
         else:
             q_id = ans_set[value['qID']]
             ans_idx = value['index']
@@ -95,10 +94,11 @@ def submission_to_cli(ans_set, data_map):
             if var_data:
                 cmd_set.append('ztp set keystore ' + keystore_id + ' '
                                   + var_name + ' ' + var_data)
-                # LOG DEBUG
-    # LOG INFO
+                log.debug('Custom Variable: ' + var_name + '\t Value: ' +
+                          var_data)
     cmd_set.append('ztp set idarray ' + keystore_id + ' '
                    + ' '.join(device_id_set))
+    log.info('Finished parsing values for ' + keystore_id)
     return cmd_set
 
 def submission_to_csv(ans_set, data_map, headers, csv_data):
@@ -120,7 +120,7 @@ def submission_to_csv(ans_set, data_map, headers, csv_data):
     q_id = ans_set[value['qID']]
     ans_idx = value['index']
     keystore_id = get_answer_element(q_id, ans_idx)
-    # LOG DEBUG
+    log.info('Processing submission for Keystore ID: ' + keystore_id)
 
     for key, value in data_map.items():
         if 'keystore_id' in key:
@@ -132,22 +132,24 @@ def submission_to_csv(ans_set, data_map, headers, csv_data):
             var_name = key
             if var_data:
                 csv_update.update({var_name: var_data})
-            # LOG DEBUG
-    # LOG INFO
+            log.debug('Variable Name: ' + var_name + '\t Value: ' +
+                        var_data)
     # Create partial entry if Import Unknown is enabled
     if keystore_id.upper() not in csv_data and import_unknown:
         csv_data.update({keystore_id.upper(): {'keystore_id': keystore_id}})
-        # LOG WARNING
+        log.warning('Unknown ID, ' + keystore_id + ', added to external '
+                    'keystore. Incomplete data may cause merge issues.')
+    # Skip item otherwise. Return unchanged data to calling code.
     elif keystore_id.upper() not in csv_data and not import_unknown:
-        print('Unknown keystore ID, "' + keystore_id + '", and Unknown '
-              'Import is disabled.  Skipping item.')
-        # Import Unknown disabled. Return unchanged data to calling code.
+        log.warning('Received unknown ID, ' + keystore_id + ', and Unknown '
+                    'Import is disabled.  Item skipped / ignored.')
         return headers, csv_data, False
     
     # Apply change list to CSV Data
     headers, csv_data = update_csv_data(csv_data, headers,
                                         keystore_id, csv_update)
     
+    log.info('Finished updating CSV values for ' + keystore_id)
     return headers, csv_data, True
 
 def update_csv_data(csv_data, headers, keystore_id, csv_update):
@@ -168,15 +170,17 @@ def update_csv_data(csv_data, headers, keystore_id, csv_update):
         # Only occurs if Import Unknown is enabled.
         if not headers:
             headers = ['keystore_id']
-            # LOG WARNING
+            log.warning('Blank external keystore found. Creating keystore_id '
+                        'header.')
         # Check CSV headers for variable. Add if needed.
         if key not in headers:
             headers.append(key)
-            # LOG DEBUG
+            log.debug('Header for "' + key + '" missing. Adding now.')
         
         data.update({key: value})
         csv_data.update({keystore_id.upper(): data})
-        # LOG DEBUG
+        log.debug('Updating "' + key + '" as "' + value + '" for "'
+                  + keystore_id + '".')
     
     return headers, csv_data
 
@@ -190,20 +194,22 @@ def get_answer_element(answer_dict, ans_idx):
 
     full_answer = answer_dict['answer']
     split_answer = full_answer.split(delimiter)
-    # print('Full Answer Text: ' + full_answer)
-    if delimiter not in full_answer:
-        # LOG WARNING - Delimiter mismatch JotForm/Current Config
+    log.debug('Full Answer Text from JotForm: ' + full_answer)
+
+    if ans_idx + 1 > len(split_answer):
+        log.warning('JotForm answer has ' + str(len(split_answer)) + 
+                    ' element(s).  Data Map looking for value in element ' + 
+                    str(ans_idx + 1) + '. Possible delimiter mismatch or Data '
+                    'Map is wrong.  Re-run setup to alter Data Map.')
         return None
-    elif ans_idx + 1 > len(split_answer):
-        # LOG WARNING - Answer missing elements
-        return None
+
     if full_answer != null_answer:
         answer_element = full_answer.split(delimiter)[int(ans_idx)]
+        log.debug('Parsed "' + answer_element + '" from full answer.')
         return answer_element.strip()
-        # LOG DEBUG
     else:
+        log.debug('Null answer found. Nothing returned to calling code.')
         return None
-        # LOG DEBUG
 
 def read_config(config_file):
     # Update external keystore fields / rows from JotForm Data
@@ -216,10 +222,9 @@ def read_config(config_file):
     if path.exists(config_file):
         with open(config_file) as f:
             config = json.load(f)
-        # LOG DEBUG
+        log.debug('Imported configuration from file, ' + config_file)
     else:
-        pass
-        # LOG DEBUG
+        log.info('Unable to import configuration. Run setup.')
 
     if config:
         return config
@@ -239,15 +244,20 @@ def read_ext_keystore(ext_keystore_file):
         reader = csv.DictReader(csv_path)
         headers = reader.fieldnames
         csv_data = {}
+        counter = 0
         # Create dictionary wrapper keyed on keystore_id.
         for row in reader:
             csv_data[row['keystore_id'].upper()] = row
-            # LOG DEBUG
+            counter += 1
+        log.info('Read ' + counter + ' line(s) from external keystore.')
         
         csv_path.close()
+        log.debug('Imported external keystore from file, ' + ext_keystore_file)
         return headers, csv_data
     
     else:
+        log.warning('Referenced keystore is missing and execution mode is '
+                    'CSV. Create keystore file or re-run setup.')
         return None, None
 
 def write_ext_keystore(ext_keystore_file, headers, csv_data):
@@ -257,16 +267,23 @@ def write_ext_keystore(ext_keystore_file, headers, csv_data):
     # headers = ['keystore_id', 'var_1', 'var_x']
     # csv_data = {'MYHOSTNAME': {'keystore_id': 'myhostname', 'var': 'value'}}
 
+    counter = 0
+
     try:
+        # Python 3 style
         csv_path = open(ext_keystore_file, 'w', newline='')
     except:
+        # Python 2 style
         csv_path = open(ext_keystore_file, 'w')
+
     writer = csv.DictWriter(csv_path, fieldnames=headers)
     writer.writeheader()
+
     # Strip off dictionary wrapper and write data
     for value in csv_data.values():
         writer.writerow(value)
-        # LOG DEBUG
+        counter += 1
+    log.info('Wrote ' + counter + ' line(s) to external keystore.')
     
     csv_path.close()
 
@@ -284,7 +301,7 @@ def get_new_submissions(api_key, form_id):
     headers = {'APIKEY': api_key}
     payload = None
     response = requests.request('GET', url, headers=headers, data=payload)
-    # Error checking in main().
+    # Error checking in calling code.
     return response
 
 def mark_submissions_read(api_key, submission_ids):
@@ -305,7 +322,7 @@ def mark_submissions_read(api_key, submission_ids):
         if response.status_code != 200:
             err_set = err_set + '\r\n' + response.text
     
-    # Error checking in main().
+    # Error checking in calling code.
     if err_set:
         return response
     else:
@@ -322,7 +339,7 @@ def exec_cmds(cmd_set):
         process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
         output = process.communicate()[0]
     
-    # Last command restarts ZTP. Verify status.
+    # Last command restarts ZTP. Verify status. Error check in calling code.
     if '(running)' in output:
         return True
     else:
@@ -734,12 +751,11 @@ def setup():
     exec_mode, csv_path, import_unknown = get_exec_mode(settings)
     null_answer = get_null_answer(settings)
 
-    sample_submission_data = get_sample_submission(api_key, form_id)
-    ans_set = sample_submission_data['answers']
+    sample_data = get_sample_submission(api_key, form_id)
+    ans_set = sample_data['answers']
     ans_menu = dict_to_q_menu(ans_set)
     
     data_map = settings['data_map'] if settings else {}
-    # print(data_map)
 
     print(constants.INFO_KEYSTORE_ID)
     ztp_var = 'keystore_id'
@@ -764,7 +780,6 @@ def setup():
             ans_ords = get_ordinals(ans_set, ans_menu, ztp_var, prompt)
         data_map.update({ztp_var: ans_ords})
     
-    # print(data_map)
     print(constants.INFO_SWITCH_STACKS)
     prompt = 'Will this ZTP instance provision switch stacks? (Y/n) > '
     response = pyip.inputYesNo(prompt=prompt, blank=True)
@@ -803,38 +818,38 @@ def setup():
             data_map.update({ztp_var: ans_ords})
         prompt = 'Map another Custom Variable? (y/N) > '
 
+    new_config = {'api_key': api_key,
+                  'form_id': form_id,
+                  'delimiter': delimiter,
+                  'exec_mode': exec_mode,
+                  'csv_path': csv_path,
+                  'import_unknown': import_unknown,
+                  'null_answer': null_answer,
+                  'data_map': data_map}
 
-    dummy = {'api_key': api_key,
-             'form_id': form_id,
-             'delimiter': delimiter,
-             'exec_mode': exec_mode,
-             'csv_path': csv_path,
-             'import_unknown': import_unknown,
-             'null_answer': null_answer,
-             'data_map': data_map}
-
-    print(json.dumps(dummy, indent=4))
+    print('Config File Contents:\r\n' + json.dumps(new_config, indent=4))
     with open(config_file, 'w') as f:
-        json.dump(dummy, f, indent=4)
+        json.dump(new_config, f, indent=4)
     f.close()
     print('Configuration saved to disk.')
 
-    # Marking sample entry as read
-    response = mark_submissions_read(api_key, [sample_submission_data['id']])
-    if response:
-        print('WARNING - FAILED TO MARK SAMPLE SUBMISSION AS READ.\r\n'
-              'Verify your API Key permissions before going into'
-              ' production.\r\n Your configuration has been saved.')
-        print(response.status_code)
-        print(json.dumps(response.json(), indent=4))
-    else:
-        print('Sample submission marked as read.\r\n SETUP COMPLETE!')
+    if not test_mode:
+        # Marking sample entry as read
+        response = mark_submissions_read(api_key, [sample_data['id']])
+        if response:
+            print('WARNING - FAILED TO MARK SAMPLE SUBMISSION AS READ.\r\n'
+                'Verify your API Key permissions before going into'
+                ' production.\r\n Your configuration has been saved.')
+            print(response.status_code)
+            print(json.dumps(response.json(), indent=4))
+        else:
+            print('Sample submission marked as read.')
+    print('SETUP COMPLETE!')
 
 def process_data():
     settings = read_config(config_file)
     if not settings:
-        print('Configuration file missing.  Please run setup.')
-        # LOG ERROR
+        # Error logged in read_config
         sys.exit()
     
     global null_answer, delimiter, import_unknown
@@ -858,21 +873,20 @@ def process_data():
         response_count = response.json()['resultSet']['count']
         api_calls_left = response.json()['limit-left']
 
-        # LOG INFO - 'New Submissions: ' + response_count
-        # LOG INFO - 'Remaining API Calls: ' + str(api_calls_left)
+        log.debug('Full Jotform Response (JSON):\r\n' +
+                  json.dumps(response.json(), indent=4))
+        log.info('New Submissions: ' + str(response_count))
+        log.info('Remaining API Calls: ' + str(api_calls_left))
 
         if api_calls_left < response_count:
-            print('Insufficient remaining API calls to service current '
+            log.warning('Insufficient remaining API calls to service current '
                   'submissions.  Stopping script without processing.')
-            # LOG ERROR
             sys.exit()
         
         if exec_mode == 'csv':
             headers, csv_data = read_ext_keystore(csv_path)
             if csv_data == None:
-                print('Referenced keystore is missing and execution mode is '
-                      'CSV.  Create keystore file or re-run setup.')
-                # LOG ERROR
+                # Error logged in read_ext_keystore
                 sys.exit()
 
         # Loop through all entries
@@ -880,70 +894,120 @@ def process_data():
             # Build submission list.  Process all before marking as read.
             # LOG DEBUG - Current Submission ID
             submission_ids.append(submission['id'])
-            # print('Submission ID: ' + submission['id'])
             ans_set = submission['answers']
             # Prepare ZTP updates based on keystore method: cli or csv.
             if exec_mode == 'cli':
                 more_cmds = submission_to_cli(ans_set, data_map)
                 restart_ztp = True
-                # LOG DEBUG
                 cmd_set.extend(more_cmds)
             else:
                 headers, csv_data, change_flag = (
                     submission_to_csv(ans_set, data_map, headers,csv_data)
                 )
                 restart_ztp = True if change_flag else restart_ztp
-                # LOG DEBUG
         
         # Post processing tasks (e.g. restart ZTP)
+        log.info('All submissions processed.')
+        log.debug('Submission Set: ' + ' '.join(submission_ids))
 
         if restart_ztp:
             if exec_mode == 'csv' and csv_data:
+                # Test harness to write to alternate external keystore file
                 # if test_mode:
                 #     csv_path = csv_path[:-4] + '2.csv'
                 write_ext_keystore(csv_path, headers, csv_data)
             elif exec_mode == 'csv' and not csv_data:
-                print('Referenced keystore empty (0 bytes) and Unknown '
+                log.warning('Referenced keystore empty (0 bytes) and Unknown '
                     'Import disabled. Stopping script without marking new '
                     'submissions as "read".')
-                # LOG ERROR
                 sys.exit()
             
             cmd_set.append('ztp service restart')
-            # print('\r\n'.join(cmd_set))
-            # LOG INFO - '\r\n'.join(cmd_set)
-            if test_mode:
-                print('\r\n'.join(cmd_set))
-            else:
+            log.debug('Commands to be sent to freeZTP CLI:\r\n' +
+                      '\r\n'.join(cmd_set))
+            if not test_mode:
                 exec_cmds(cmd_set)
-                # LOG INFO - 'Submission Set: ' + ' '.join(submission_ids)
+                log.info(str(len(cmd_set)) + 'Commands successfully sent to '
+                         'freeZTP CLI')
                 response = mark_submissions_read(api_key, submission_ids)
                 if response:
-                    print(response)
-                    # LOG DEBUG
+                    log.info('Submissions successfully marked as read.')
                 else:
-                    # LOG DEBUG
-                    pass
+                    log.warning('Submissions failed to be marked as read.')
         else:
-            print('No changes. ZTP not restarted!')
-            # LOG INFO
+            log.info('No data changes! ZTP not restarted.')
+
+    elif response.status_code == 200:
+        log.debug('Full Jotform Response (JSON):\r\n' +
+                  json.dumps(response.json(), indent=4))
+        log.info('No new submissions!')
     else:
-        print('No new submissions!')
-        # LOG INFO
+        log.warning('Jotform Response & Headers (Plain):\r\n' + response.text +
+                  '\r\n\r\n' + response.headers)
+    
+    log.info('Script Execution Complete')
+
+def config_logging(log_file, file_level, console_level=None):
+    # Create logger object
+    log = logging.getLogger('default')
+    log.setLevel(logging.DEBUG)
+    # Create formatter
+    formatter = logging.Formatter('%(asctime)s.%(msecs)03d %(levelname)s:'
+        '%(funcName)s:%(lineno)s %(message)s', '%Y-%m-%d %H:%M:%S')
+    
+    # Create and configure file handler
+    fh = logging.FileHandler(log_file)
+    fh.setLevel(file_level)
+    fh.setFormatter(formatter)
+    log.addHandler(fh)
+
+    # Create and configure console handler, if needed
+    if console_level:
+        ch = logging.StreamHandler()
+        ch.setLevel(console_level)
+        ch.setFormatter(formatter)
+        log.addHandler(ch)
+
+    return log
 
 def main():
-    if len(sys.argv) > 1:
-        if sys.argv[1].lower() == 'setup':
-            print('Hello')
-            setup()
-        else:
-            process_data()
+    global config_file, test_mode, log
+
+    config_file = 'datamap.json'
+    log_file = 'jfit-ztp.log'
+    file_level = logging.INFO
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-s', '--setup', action='store_true', help='Run setup')
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help='Print informational messages to console')
+    parser.add_argument('-d', '--debug', action='store_true',
+                        help='Print debug messages to console')
+    args = parser.parse_args()
+
+    if args.debug:
+        log = config_logging(log_file, file_level, console_level=logging.DEBUG)
+    elif args.verbose:
+        log = config_logging(log_file, file_level, console_level=logging.INFO)
+    else:
+        log = config_logging(log_file, file_level)
+    
+    # Add events from top of script to log
+    log.debug(import_log)
+
+    # Author's test harness. Disables sending commands to CLI and disables
+    # JotForm submission marking (setup and process_data)
+    test_mode = False
+    if test_mode:
+        log.info('Test Mode Enabled - No ZTP updates / JotForm Read marks.')
+    else:
+        log.info('Test Mode Disabled')
+
+    if args.setup:
+        setup()
     else:
         process_data()
 
 if __name__ == '__main__':
-    global config_file, test_mode
-    config_file = 'datamap.json'
-    test_mode = False
     main()
 
