@@ -11,8 +11,6 @@ Open Caveats / Bugs / Limitations:
    i. if not isinstance(prompt, (str, unicode)):
  b. Line 156: Change input() to raw_input()
    i. userInput = raw_input()
- c. Data display in setup for "previous items" is framed in python structures
-    and not textual.  Issue only occurs in Python 2. (PyInputPlus related)
 2. Script only adds to or alters existing data.  Duplicate JotForm submissions
    will not remove unneeded commands / external keystore fields.  Resolution
    appears to be non-trivial.  Possible strategy of marking some datamap
@@ -737,7 +735,7 @@ def get_old_vals(var_dict, var_list, ans_set=None):
     # in same order as var_list.
     print('Setting from previous setup found:')
     for key, value in review_info.items():
-        print(key + ' : ' + value)
+        print(key + ' : ' + str(value))
     response = pyip.inputYesNo('Reuse this setting? (Y/n) > ', blank=True)
     if response == 'yes' or not response:
         return var_list_data
