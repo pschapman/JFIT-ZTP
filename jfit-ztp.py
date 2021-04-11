@@ -737,7 +737,7 @@ def get_old_vals(var_dict, var_list, ans_set=None):
     # in same order as var_list.
     print('Setting from previous setup found:')
     for key, value in review_info.items():
-        print(key, ':', value)
+        print(key + ' : ' + value)
     response = pyip.inputYesNo('Reuse this setting? (Y/n) > ', blank=True)
     if response == 'yes' or not response:
         return var_list_data
@@ -930,8 +930,8 @@ def process_data():
                       '\r\n'.join(cmd_set))
             if not test_mode:
                 exec_cmds(cmd_set)
-                log.info(str(len(cmd_set)) + 'Commands successfully sent to '
-                         'freeZTP CLI')
+                log.info(str(len(cmd_set)) + ' command(s) successfully sent '
+                         'to freeZTP CLI')
                 response = mark_submissions_read(api_key, submission_ids)
                 if not response:
                     log.info('Submissions successfully marked as read.')
