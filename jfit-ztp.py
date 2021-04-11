@@ -249,7 +249,7 @@ def read_ext_keystore(ext_keystore_file):
         for row in reader:
             csv_data[row['keystore_id'].upper()] = row
             counter += 1
-        log.info('Read ' + counter + ' line(s) from external keystore.')
+        log.info('Read ' + str(counter) + ' line(s) from external keystore.')
         
         csv_path.close()
         log.debug('Imported external keystore from file, ' + ext_keystore_file)
@@ -283,7 +283,7 @@ def write_ext_keystore(ext_keystore_file, headers, csv_data):
     for value in csv_data.values():
         writer.writerow(value)
         counter += 1
-    log.info('Wrote ' + counter + ' line(s) to external keystore.')
+    log.info('Wrote ' + str(counter) + ' line(s) to external keystore.')
     
     csv_path.close()
 
