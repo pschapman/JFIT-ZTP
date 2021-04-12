@@ -64,16 +64,16 @@ This procedure assumes that you have already installed freeZTP and it is running
    12. Select whether additional Custom Variables should be mapped
 9. Configure JFIT-ZTP to run as a cron job
     1.  `crontab -e`
-    2.  Add: `* * * * * cd /<path>/jfit-ztp&&python jfit-ztp.py`
+    2.  Add: `* * * * * cd /<path>/jfit-ztp && python jfit-ztp.py`
     3.  Save update and exit
     4.  Restart cron service: `systemctl restart cron`
     5.  **NOTE:** Once per minute is recommended for active implementation.
     6.  **WARNING:** JotForm limits API calls per day, so verify you will not exceed your limit before configuring your cron job.
 
 ## Open Issues for v0.9.3 Beta
-- Python 2.7 imports JSON data fields as unicode strings.  This causes a vaidation issue on the "prompt" in PyInputPlus.  Current workaround is to hack PyInputPlus, adding unicode as a valid class for the prompt field.
-- Native input() function in Python 2.7 expects an expression or function, and not a user input string. raw_input() in 2.7 is equivalent to input() in 3.x.  PyInputPlus uses the 3.x style.  Current workaround is to hack PyInputPlus, changing input() to raw_input().
-- Possible issue in get_form_id().  If only 1 form in list PyInputPlus may error out.
+- Python 2.7 imports JSON data fields as unicode strings.  This causes a vaidation issue on the "prompt" in PyInputPlus.  **Workaround** is to hack PyInputPlus, adding unicode as a valid class for the prompt field. (See install instructions above.)
+- Native input() function in Python 2.7 expects an expression or function, and not a user input string. raw_input() in 2.7 is equivalent to input() in 3.x.  PyInputPlus uses the 3.x style.  **Workaround** is to hack PyInputPlus, changing input() to raw_input(). (See install instructions above.)
+- Possible issue in get_form_id().  If only 1 form in list, then PyInputPlus may error out. **Workaround** by adding a second form to JotForm.
 
 ## Future features
 - Running setup additional times will update all fields, but will not remove mappings that no longer apply.  Setup logic likely needs a rewrite to fix.  **Workaround** by deleting datamap.json and run setup from the beginning.
@@ -87,4 +87,4 @@ This procedure assumes that you have already installed freeZTP and it is running
   - Updated install instructions in readme.
 - 0.9.3 Beta
   - Altered update logic to automatically clear fields that have the Null Answer in the JotForm submission.  For CLI style, JFIT-ZTP now issues `ztp clear` commands as needed.  For CSV style, JFIT-ZTP will clear any data from the appropriate field.
-  - Added simple WebEx Teams notification feature.  Add your Bot Token and room during setup. Mardown file with sample added to Git Repo.
+  - Added simple WebEx Teams notification feature.  Add your Bot Token and room during setup. Mardown file with sample added to Git Repo under documentation.
