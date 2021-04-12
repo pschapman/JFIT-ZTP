@@ -42,7 +42,7 @@ To pre-provision interfaces on mixed stacks we must use known values for the swi
 
 ![Model Names](model_names.png)
 
-Again, we will use Excel to prepare our JotForm data.  Again, we will use the Dynamic Dropdown Widget because it is searchable. (Field techs can put in a partial serial to find the exact item from the list.)
+Again, we will use Excel to prepare our JotForm data.  Again, we will use the Dynamic Dropdown Widget because it is searchable. (Field techs can put in a partial serial to find the exact item from the list.) Model can be used for other purposes (e.g. for stack and standalone switches, the model may influence Jinja2 processing or EEM scripting).
 
 ![Sample Serial-Model Mapping](serial_model_map.png)
 
@@ -139,7 +139,7 @@ This task list outlines building a basic Form for a stack of 2 switches.  Advanc
 
 \* **NOTE 1:** "Select From List" is the Null Answer that will be ignored by JFIT-ZTP.  This string is case sensitive.  ***A mismatch will cause defective data to be imported into freeZTP.***
 
-\*\* **NOTE 2:** "Separator" in Jotform is called "delimter" in JFIT-ZTP and is used to extract individual fields from compound answers.  Ex. Site and Hostname might return "Site 1 : SWITCH2". JFIT-ZTP can extract either element as long as the separator is consistent in all answers.
+\*\* **NOTE 2:** "Separator" in Jotform is called "delimiter" in JFIT-ZTP and is used to extract individual fields from compound answers.  Example: Site and Hostname might return "Site 1 : SWITCH2". JFIT-ZTP can extract either element as long as the separator is consistent in all answers.
 
 ## Configure freeZTP
 This task list outlines post install tasks for freeZTP, but may not include in-depth detail for each.
