@@ -32,15 +32,18 @@ Planning the deployment will be the key to success. To build our JotForm with on
 Obtaining this data requires knowledge of the target environment either directly or through discovery.
 
 For repeatability this data can be organized in Microsoft Excel (or Google Sheets). The image below provides a simple view showing how to space-indent data for use with JotForm's Dynamic Dropdown Widget.
+
 ![Sample Site-Hostname Mapping](site_hostname_map.png)
 
 ### Serial Numbers and Associated Models
 This data can be obtained several ways.  The easiest method is to pull it out of Cisco's Sales Order (SO) report.  If that is not available, then serials must be scanned in during the receiving process.
 
 To pre-provision interfaces on mixed stacks we must use known values for the switch model we are using.  The image below shows how we obtained a list from a Cisco Catalyst 9300-series switch.
+
 ![Model Names](model_names.png)
 
 Again, we will use Excel to prepare our JotForm data.  Again, we will use the Dynamic Dropdown Widget because it is searchable. (Field techs can put in a partial serial to find the exact item from the list.)
+
 ![Sample Serial-Model Mapping](serial_model_map.png)
 
 **NOTE:** Asset tag is a possible addition to this data, and may be easier for field techs to type.
@@ -104,6 +107,7 @@ interface range Te{{ loop.index }}/0/1-24
 The first column in the External Keystore should always be "keystore_id".  This field is the minimum data required by freeZTP.
 
 To maximize the capabilities of freeZTP, we will pre-populate data that is important to the deployment, but is not coming from JotForm.  Specifically, we will pre-populate the template association, SNMP location, and the 2nd and 4th octets of the device management IP.
+
 ![Sample External Keystore](sample_keystore.png)
 
 **NOTE:** "keystore_id", "association", and "idarray_#" are freeZTP native variables. All other columns are headed by custom variables for this deployment.
