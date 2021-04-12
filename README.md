@@ -26,6 +26,7 @@ After updates to ZTP are executed the JotForm submissions are marked "read".  Th
 ![Data Flow](documentation/dataflow.png)
 
 ## Compatibility
+These have been tested so far.  Install instructions based on tested platforms.
 - Platforms: Ubuntu 20.04LTS
 - Python: 2.7 (caveats) & 3.9
 
@@ -73,7 +74,7 @@ This procedure assumes that you have already installed freeZTP and it is running
 ## Open Issues for v0.9.3 Beta
 - Python 2.7 imports JSON data fields as unicode strings.  This causes a vaidation issue on the "prompt" in PyInputPlus.  **Workaround** is to hack PyInputPlus, adding unicode as a valid class for the prompt field. (See install instructions above.)
 - Native input() function in Python 2.7 expects an expression or function, and not a user input string. raw_input() in 2.7 is equivalent to input() in 3.x.  PyInputPlus uses the 3.x style.  **Workaround** is to hack PyInputPlus, changing input() to raw_input(). (See install instructions above.)
-- Possible issue in get_form_id().  If only 1 form in list, then PyInputPlus may error out. **Workaround** by adding a second form to JotForm.
+- Likely issue when running setup. Issue is in get_form_id().  If only 1 form returned, then PyInputPlus may error out. **Workaround** by adding a second form to JotForm.
 
 ## Future features
 - Running setup additional times will update all fields, but will not remove mappings that no longer apply.  Setup logic likely needs a rewrite to fix.  **Workaround** by deleting datamap.json and run setup from the beginning.
