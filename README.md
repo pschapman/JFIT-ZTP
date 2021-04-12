@@ -6,6 +6,8 @@ JFIT-ZTP is simply a data extraction tool.  It maps answer data from JotForm to 
 
 **What is freeZTP?** freeZTP (or just ZTP) is an open-source project which automates deployment of Cisco switches and routers. Cisco has included a unique first-boot behavior in IOS / IOS-XE for Zero Touch Provisioning.  See [packetsar/freeztp](https://github.com/PackeTsar/freeztp) on GitHub for more details.
 
+**Additional Reading** If the README didn't put you to sleep, then try the ["Practical Guide"](documentation/practical_stack_guide.md) posted in documentation.
+
 ## Background
 freeZTP has been instrumental for time savings in large scale deployments of Cisco switches (500 to 1500 units).  Several issues related to planning and logistics have been seen in these projects.  
 
