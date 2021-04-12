@@ -3,7 +3,7 @@
 ##               JotForm Form Import Tool for freeZTP                ##
 
 Author: Paul S. Chapman
-Version: 0.9
+Version: 0.9.3 Beta
 
 Open Caveats / Bugs / Limitations:
 1. Hacks on PyInputPlus __init__.py for Python 2.7 compatibility
@@ -11,17 +11,11 @@ Open Caveats / Bugs / Limitations:
    i. if not isinstance(prompt, (str, unicode)):
  b. Line 156: Change input() to raw_input()
    i. userInput = raw_input()
-2. Script only adds to or alters existing data.  Duplicate JotForm submissions
-   will not remove unneeded commands / external keystore fields.  Resolution
-   appears to be non-trivial.  Possible strategy of marking some datamap
-   variables as "unprotected" and subject to automatic deletion.  May require
-   update to datamap schema.
 
 To Do List:
 1. Alter setup to show list of existing variables and allow individual update
    or delete.
 2. Automate configuration of cron job
-3. Determine what happens if 'mark as read' fails for process_data
 """
 # Python native modules
 from os import path
@@ -40,12 +34,15 @@ else:
 
 # External modules. Installed by freeztpInstaller.
 import requests
+from jinja2 import Template as jinja
+
 # External modules. Separate install required.
 try:
     import pyinputplus as pyip
 except:
     print('Install module PyInputPlus. (e.g. pip install pyinputplus)')
     sys.exit()
+
 # Private modules
 import constants
 
@@ -56,6 +53,7 @@ def submission_to_cli(ans_set, data_map):
     # data_map = {'varname': {'qID': '1', 'index': 0}}
     # Outputs
     # cmd_set = ['ztp set idarray <name> <serial>', 'another ztp command']
+    # keystore_id = '<string>'
 
     cmd_set = []
     device_id_set = []
@@ -84,6 +82,9 @@ def submission_to_cli(ans_set, data_map):
                 cmd_set.append('ztp set association id ' + keystore_id
                                + ' template ' + var_data)
                 log.debug('Association ID: ' + var_data)
+            else:
+                # Default answer. Clear old association, if present.
+                cmd_set.append('ztp clear association ' + keystore_id)
         else:
             q_id = ans_set[value['qID']]
             ans_idx = value['index']
@@ -92,12 +93,17 @@ def submission_to_cli(ans_set, data_map):
             if var_data:
                 cmd_set.append('ztp set keystore ' + keystore_id + ' '
                                   + var_name + ' ' + var_data)
-                log.debug('Custom Variable: ' + var_name + '\t Value: ' +
-                          var_data)
+                log.debug('Custom Variable: ' + var_name + '\t Value: '
+                          + var_data)
+            else:
+                # Default answer. Clear old variable, if present.
+                cmd_set.append('ztp clear keystore ' + keystore_id + ' '
+                               + var_name)
+
     cmd_set.append('ztp set idarray ' + keystore_id + ' '
                    + ' '.join(device_id_set))
     log.info('Finished parsing values for ' + keystore_id)
-    return cmd_set
+    return cmd_set, keystore_id
 
 def submission_to_csv(ans_set, data_map, headers, csv_data):
     # Update external keystore fields / rows from JotForm Data
@@ -110,6 +116,7 @@ def submission_to_csv(ans_set, data_map, headers, csv_data):
     # headers <altered list if any headers missing>
     # csv_data <altered entries, same as above format>
     # True/False indicating whether changes were made (ztp restart)
+    # keystore_id = '<string>' or None
 
     # Create empty change list
     csv_update = {}
@@ -126,12 +133,14 @@ def submission_to_csv(ans_set, data_map, headers, csv_data):
         else:
             q_id = ans_set[value['qID']]
             ans_idx = value['index']
+            # If func returns None, then CSV field will be cleared.
             var_data = get_answer_element(q_id, ans_idx)
             var_name = key
-            if var_data:
-                csv_update.update({var_name: var_data})
+            # if var_data:
+            #     csv_update.update({var_name: var_data})
+            csv_update.update({var_name: var_data})
             log.debug('Variable Name: ' + var_name + '\t Value: ' +
-                        var_data)
+                        str(var_data))
     # Create partial entry if Import Unknown is enabled
     if keystore_id.upper() not in csv_data and import_unknown:
         csv_data.update({keystore_id.upper(): {'keystore_id': keystore_id}})
@@ -141,14 +150,14 @@ def submission_to_csv(ans_set, data_map, headers, csv_data):
     elif keystore_id.upper() not in csv_data and not import_unknown:
         log.warning('Received unknown ID, ' + keystore_id + ', and Unknown '
                     'Import is disabled.  Item skipped / ignored.')
-        return headers, csv_data, False
+        return headers, csv_data, False, None
     
     # Apply change list to CSV Data
     headers, csv_data = update_csv_data(csv_data, headers,
                                         keystore_id, csv_update)
     
     log.info('Finished updating CSV values for ' + keystore_id)
-    return headers, csv_data, True
+    return headers, csv_data, True, keystore_id
 
 def update_csv_data(csv_data, headers, keystore_id, csv_update):
     # Update external keystore fields / rows from JotForm Data
@@ -177,7 +186,7 @@ def update_csv_data(csv_data, headers, keystore_id, csv_update):
         
         data.update({key: value})
         csv_data.update({keystore_id.upper(): data})
-        log.debug('Updating "' + key + '" as "' + value + '" for "'
+        log.debug('Updating "' + key + '" as "' + str(value) + '" for "'
                   + keystore_id + '".')
     
     return headers, csv_data
@@ -194,7 +203,7 @@ def get_answer_element(answer_dict, ans_idx):
     split_answer = full_answer.split(delimiter)
     log.debug('Full Answer Text from JotForm: ' + full_answer)
 
-    if ans_idx + 1 > len(split_answer):
+    if ans_idx + 1 > len(split_answer) and full_answer != null_answer:
         log.warning('JotForm answer has ' + str(len(split_answer)) + 
                     ' element(s).  Data Map looking for value in element ' + 
                     str(ans_idx + 1) + '. Possible delimiter mismatch or Data '
@@ -544,6 +553,7 @@ def get_form_id(api_key, settings):
         print(constants.FAIL_NO_FORMS_FOUND)
         sys.exit()
 
+    # NOTE: Likely issue if only one form exists. See get_room_id.
     prompt = 'Which Form is being used for this deployment? > \r\n'
     form_name = pyip.inputMenu(list(data.keys()), prompt=prompt, numbered=True)
     return data[form_name]
@@ -742,22 +752,177 @@ def get_old_vals(var_dict, var_list, ans_set=None):
     else:
         return None
 
+def config_logging(log_file, file_level, console_level=None):
+    # Create logger object
+    log = logging.getLogger('default')
+    log.setLevel(logging.DEBUG)
+    # Create formatter
+    formatter = logging.Formatter('%(asctime)s.%(msecs)03d %(levelname)s:'
+        '%(funcName)s:%(lineno)s %(message)s', '%Y-%m-%d %H:%M:%S')
+    
+    # Create and configure file handler
+    fh = logging.FileHandler(log_file)
+    fh.setLevel(file_level)
+    fh.setFormatter(formatter)
+    log.addHandler(fh)
+
+    # Create and configure console handler, if needed
+    if console_level:
+        ch = logging.StreamHandler()
+        ch.setLevel(console_level)
+        ch.setFormatter(formatter)
+        log.addHandler(ch)
+
+    return log
+
+def get_bot_token(settings):
+    # Ask user for WebEx Bot Token. settings passed to offer option to use
+    # existing configuration.
+    # Inputs
+    # settings = {'bot_token': '<key>', '<vars>': '<vals>', 'data_map': {<map>}}
+    # Output
+    # bot_token = '<string>'
+
+    print(constants.INFO_GET_BOT_TOKEN)
+
+    old_vals = get_old_vals(settings, ['bot_token'])
+    if old_vals:
+        return old_vals[0]
+
+    validated = False
+    prompt = 'Input the Bot Token. > '
+    while not validated:
+        bot_token = pyip.inputStr(
+            prompt=prompt,
+            blockRegexes=[
+                ('.{110,}', 'Answer too long.'),
+                (r'\ ', 'Spaces not allowed.')
+                ]
+            )
+        result = query_available_rooms(bot_token)
+        if result:
+            validated = True
+    return bot_token
+
+def query_available_rooms(bot_token):
+    # Request list of rooms accessible to Bot
+    # Inputs
+    # bot_token = '<string>'
+    # Output
+    # None or
+    # form_set = {'My Room Title': '<str>', 'My Room Title2': '<str>'}
+
+    url = 'https://webexapis.com/v1/rooms'
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + bot_token
+        }
+    payload = None
+    response = requests.request('GET', url, headers=headers, data=payload)
+    room_set = {}
+    if response.status_code == 200:
+        for room in response.json()['items']:
+            room_set.update({room['title']: room['id']})
+    else:
+        print('Room Query Failure. Status Code: ' + str(response.status_code)
+              + '\r\nResponse Text:\r\n\r\n' + response.text)
+    
+    if len(room_set) > 0:
+        return room_set
+    else:
+        return None
+
+def get_room_id(bot_token, settings):
+    # Ask user for WebEx Room ID. settings passed to offer option to use
+    # existing configuration.
+    # Inputs
+    # settings = {'api_key': '<key>', '<vars>': '<vals>', 'data_map': {<map>}}
+    # Output
+    # room_id = '<string>'
+
+    print(constants.INFO_GET_ROOM_ID)
+
+    old_vals = get_old_vals(settings, ['room_id'])
+    if old_vals:
+        return old_vals[0]
+
+    room_set = query_available_rooms(bot_token)
+    if not room_set:
+        print(constants.FAIL_NO_ROOMS_FOUND)
+        sys.exit()
+
+    if len(room_set) == 1:
+        prompt = 'Select item or hit <enter>. > \r\n'
+    else:
+        prompt = 'Select item from list. > \r\n'
+
+    room_id = None
+    while not room_id:
+        room_name = pyip.inputMenu(list(room_set.keys()),
+                                   prompt=prompt,
+                                   numbered=True,
+                                   blank=True)
+        if len(room_set) == 1 and not room_name:
+            room_id = room_set.values()[0]
+        else:
+            room_id = room_set[room_name]
+    
+    return room_id
+
+
+def send_webex_msg(markdown):
+    # Query JotForm for new Submissions
+    # Inputs
+    # markdown = '<message text in markdown format>'
+    # bot_token = '<string>'
+    # room_id = '<hex string>'
+    # Output
+    # None
+
+    url = 'https://webexapis.com/v1/messages'
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + bot_token
+        }
+    payload = json.dumps({'roomId': room_id, 'markdown': markdown})
+    response = requests.request('POST', url, headers=headers, data=payload)
+    log.debug('Attempting to send message to Teams Room')
+    if response.status_code != 200:
+        log.warning('Send to WebEx Room Failed. Response Text:\r\n'
+                    + response.text + '\r\n\r\nStatus Code: '
+                    + str(response.status_code))
+
 def setup():
     global delimiter, null_answer
     settings = read_config(config_file)
 
+    # Settings not part of key map
     api_key = get_api_key(settings)
     form_id = get_form_id(api_key, settings)
     delimiter = get_delimiter(settings)
     exec_mode, csv_path, import_unknown = get_exec_mode(settings)
     null_answer = get_null_answer(settings)
 
+    # Enable WebEx Teams notifications
+    print(constants.INFO_WEBEX_TEAMS_INTEGRATION)
+    prompt = 'Enable notifications to WebEx Teams? (y/N) > '
+    response = pyip.inputYesNo(prompt=prompt, blank=True)
+    if response == 'yes':
+        bot_token = get_bot_token(settings)
+        room_id = get_room_id(bot_token, settings)
+    else:
+        bot_token = None
+        room_id = None
+
+    # Get sample data set for key map Q&A
     sample_data = get_sample_submission(api_key, form_id)
     ans_set = sample_data['answers']
     ans_menu = dict_to_q_menu(ans_set)
     
+    # Get old data map settings to offer reusable config
     data_map = settings['data_map'] if settings else {}
 
+    # Begin key map Q&A
     print(constants.INFO_KEYSTORE_ID)
     ztp_var = 'keystore_id'
     old_vals = get_old_vals(data_map, [ztp_var], ans_set)
@@ -819,6 +984,7 @@ def setup():
             data_map.update({ztp_var: ans_ords})
         prompt = 'Map another Custom Variable? (y/N) > '
 
+    # Post Q&A - Generate / save JSON file then mark sample submission "read"
     new_config = {'api_key': api_key,
                   'form_id': form_id,
                   'delimiter': delimiter,
@@ -826,6 +992,8 @@ def setup():
                   'csv_path': csv_path,
                   'import_unknown': import_unknown,
                   'null_answer': null_answer,
+                  'bot_token': bot_token,
+                  'room_id': room_id,
                   'data_map': data_map}
 
     print('Config File Contents:\r\n' + json.dumps(new_config, indent=4))
@@ -853,9 +1021,11 @@ def process_data():
         # Error logged in read_config
         sys.exit()
     
-    global null_answer, delimiter, import_unknown
+    global null_answer, delimiter, import_unknown, bot_token, room_id
     null_answer = settings['null_answer']
     delimiter = settings['delimiter']
+    bot_token = settings['bot_token']
+    room_id = settings['room_id']
     exec_mode = settings['exec_mode']      # cli or csv
     import_unknown = settings['import_unknown']
     csv_path = settings['csv_path']
@@ -865,7 +1035,7 @@ def process_data():
     restart_ztp = False
     submission_ids = []
     cmd_set = []
-    
+
     response = get_new_submissions(api_key, form_id)
     
     # Process data only if new entries exist
@@ -890,6 +1060,10 @@ def process_data():
                 # Error logged in read_ext_keystore
                 sys.exit()
 
+        msg_form = ('#### JotForm Data Added to freeZTP\r\n'
+                    '{{ keystore_id }} ([{{ submission_id }}]'
+                    '(https://jotform.com/edit/{{ submission_id }})) '
+                    '\r\n\r\n---')
         # Loop through all entries
         for submission in response.json()['content']:
             # Build submission list.  Process all before marking as read.
@@ -898,14 +1072,18 @@ def process_data():
             ans_set = submission['answers']
             # Prepare ZTP updates based on keystore method: cli or csv.
             if exec_mode == 'cli':
-                more_cmds = submission_to_cli(ans_set, data_map)
+                more_cmds, keystore_id = submission_to_cli(ans_set, data_map)
                 restart_ztp = True
                 cmd_set.extend(more_cmds)
             else:
-                headers, csv_data, change_flag = (
+                headers, csv_data, change_flag, keystore_id = (
                     submission_to_csv(ans_set, data_map, headers,csv_data)
                 )
                 restart_ztp = True if change_flag else restart_ztp
+
+            if bot_token and keystore_id:
+                markdown = jinja(msg_form).render(submission_id=submission['id'], keystore_id=keystore_id)
+                send_webex_msg(markdown)
         
         # Post processing tasks (e.g. restart ZTP)
         log.info('All submissions processed.')
@@ -948,29 +1126,6 @@ def process_data():
                   '\r\n\r\n' + response.headers)
     
     log.info('Script Execution Complete')
-
-def config_logging(log_file, file_level, console_level=None):
-    # Create logger object
-    log = logging.getLogger('default')
-    log.setLevel(logging.DEBUG)
-    # Create formatter
-    formatter = logging.Formatter('%(asctime)s.%(msecs)03d %(levelname)s:'
-        '%(funcName)s:%(lineno)s %(message)s', '%Y-%m-%d %H:%M:%S')
-    
-    # Create and configure file handler
-    fh = logging.FileHandler(log_file)
-    fh.setLevel(file_level)
-    fh.setFormatter(formatter)
-    log.addHandler(fh)
-
-    # Create and configure console handler, if needed
-    if console_level:
-        ch = logging.StreamHandler()
-        ch.setLevel(console_level)
-        ch.setFormatter(formatter)
-        log.addHandler(ch)
-
-    return log
 
 def main():
     global config_file, test_mode, log
