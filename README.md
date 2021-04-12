@@ -21,7 +21,7 @@ JFIT-ZTP allows for CLI style or external keystore (CSV) style configuration of 
 After updates to ZTP are executed the JotForm submissions are marked "read".  This limits the returned data for each execution of JFIT-ZTP and speeds up processing.
 
 **NOTE:** In CSV style, IDArray and KeyStore data is mapped into the external keystore. Association (template) mapping can use the ZTP default, a static field in the CSV, or dynamic data from JotForm.
-![Data Flow](dataflow.png)
+![Data Flow](documentation/dataflow.png)
 
 ## Compatibility
 - Platforms: Ubuntu 20.04LTS
