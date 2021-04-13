@@ -893,7 +893,7 @@ def send_webex_msg(markdown):
                     + str(response.status_code))
 
 def setup():
-    global delimiter, null_answer
+    global delimiter, null_answer, bot_token, room_id
     settings = read_config(config_file)
 
     # Settings not part of key map
@@ -1002,6 +1002,13 @@ def setup():
     f.close()
     print('Configuration saved to disk.')
 
+    if bot_token:
+        msg_form = ('#### JFIT Setup Complete\r\n'
+                    'Hi, your WebEx Teams Bot integration is working!!\r\n'
+                    '\r\n---')
+        markdown = jinja(msg_form).render(config=new_config)
+        send_webex_msg(markdown)
+
     if not test_mode:
         # Marking sample entry as read
         response = mark_submissions_read(api_key, [sample_data['id']])
@@ -1082,7 +1089,9 @@ def process_data():
                 restart_ztp = True if change_flag else restart_ztp
 
             if bot_token and keystore_id:
-                markdown = jinja(msg_form).render(submission_id=submission['id'], keystore_id=keystore_id)
+                markdown = jinja(msg_form).render(
+                    submission_id=submission['id'], keystore_id=keystore_id
+                    )
                 send_webex_msg(markdown)
         
         # Post processing tasks (e.g. restart ZTP)
