@@ -75,6 +75,7 @@ This procedure assumes that you have already installed freeZTP and it is running
 - Python 2.7 imports JSON data fields as unicode strings.  This causes a vaidation issue on the "prompt" in PyInputPlus.  **Workaround** is to hack PyInputPlus, adding unicode as a valid class for the prompt field. (See install instructions above.)
 - Native input() function in Python 2.7 expects an expression or function, and not a user input string. raw_input() in 2.7 is equivalent to input() in 3.x.  PyInputPlus uses the 3.x style.  **Workaround** is to hack PyInputPlus, changing input() to raw_input(). (See install instructions above.)
 - Likely issue when running setup. Issue is in get_form_id().  If only 1 form returned, then PyInputPlus may error out. **Workaround** by adding a second form to JotForm.
+- Questions that are hidden in JotForm may send no `answer`.  This causes an unhandled error in `get_answer_element`. **Workaround** is to disable "clear hidden items" and to dynamically hide questions using conditions in JotForm. This ensures that the default answer (null answer) is stored on submission.
 
 ## Future features
 - Running setup additional times will update all fields, but will not remove mappings that no longer apply.  Setup logic likely needs a rewrite to fix.  **Workaround** by deleting datamap.json and run setup from the beginning.
