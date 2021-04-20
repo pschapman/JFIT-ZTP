@@ -6,16 +6,11 @@ Author: Paul S. Chapman
 Version: 0.9.3 Beta
 
 Open Caveats / Bugs / Limitations:
-1. Hacks on PyInputPlus __init__.py for Python 2.7 compatibility
- a. Line 134: Add "unicode" to class list str -> (str,unicode)
-   i. if not isinstance(prompt, (str, unicode)):
- b. Line 156: Change input() to raw_input()
-   i. userInput = raw_input()
+ 1. See README.md
 
 To Do List:
-1. Alter setup to show list of existing variables and allow individual update
-   or delete.
-2. Automate configuration of cron job
+ 1. See README.md
+ 2. Automate configuration of cron job
 """
 # Python native modules
 from os import path
@@ -29,7 +24,7 @@ if int(sys.version[:1]) == 3:
     from urllib.parse import quote
     import_log = 'Imported URLLib.Parse for Python 3.'
 else:
-    from urllib import quote
+    from urllib import quote # pylint: disable=no-name-in-module
     import_log = 'Imported URLLib for Python 2.'
 
 # External modules. Installed by freeztpInstaller.
