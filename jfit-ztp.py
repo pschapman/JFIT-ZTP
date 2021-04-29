@@ -447,6 +447,8 @@ def get_sample_submission(api_key, form_id):
     response = get_new_submissions(api_key, form_id)
     if (response.status_code == 200
             and response.json()['resultSet']['count'] >= 1):
+        log.debug('Full Jotform Response (JSON):\r\n' +
+                  json.dumps(response.json(), indent=4))
         count = response.json()['resultSet']['count']
         submission_ids = []
         for submission in response.json()['content']:
@@ -483,21 +485,18 @@ def dict_to_q_menu(ans_set):
     # ans_menu = ['Question: Q1 / Answer: A1 / Control:000x']
 
     ans_menu = []
-    ctrl = 1
-    for index in range(len(ans_set)):
-        # q_text = ans_set[str(index + 1)]['text'].encode('ascii')
-        q_text = ans_set[str(index + 1)]['text']
+    for q_id_num, inner_dict in ans_set.items():
+        q_text = inner_dict['text']
         try:
-            # q_answer = ans_set[str(index + 1)]['answer'].encode('ascii')
-            q_answer = ans_set[str(index + 1)]['answer']
+            q_answer = inner_dict['answer']
         except:
             q_answer = 'None'
-        
+
         # PyIP returns answer text, not answer #.  Control string used for item
         # identification in get_ordinals.
         ans_menu.append('Question: ' + q_text + ' / Answer: ' + q_answer
-                           + ' / Control:' + ('0000' + str(ctrl))[-4:])
-        ctrl += 1
+                           + ' / Control:' + ('0000' + str(q_id_num))[-4:])
+
     return ans_menu
 
 def get_api_key(settings):
