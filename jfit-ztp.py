@@ -18,7 +18,6 @@ import json
 import csv
 import logging
 import argparse
-from urllib.parse import ParseResultBytes
 if int(sys.version[:1]) == 3:
     from urllib.parse import quote
     import_log = 'Imported URLLib.Parse for Python 3.'
