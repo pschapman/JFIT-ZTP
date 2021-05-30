@@ -27,7 +27,7 @@ After updates to ZTP are executed the JotForm submissions are marked "read".  Th
 
 ## Compatibility
 These have been tested so far.  Install instructions based on tested platforms.
-- Platforms: Ubuntu 20.04LTS
+- Platforms: Debian Buster (10) and derivative distros including Ubuntu 20.04LTS and Raspbian Kernel 5 (PiOS)
 - Python: 2.7 (caveats) & 3.9
 
 
@@ -71,14 +71,19 @@ This procedure assumes that you have already installed freeZTP and it is running
     5.  **NOTE:** Once per minute is recommended for active implementation.
     6.  **WARNING:** JotForm limits API calls per day, so verify you will not exceed your limit before configuring your cron job.
 
-## Open Issues for v0.9.3 Beta
+## Open Issues for v0.9.4 Beta
 - Python 2.7 imports JSON data fields as unicode strings.  This causes a vaidation issue on the "prompt" in PyInputPlus.  **Workaround** is to hack PyInputPlus, adding unicode as a valid class for the prompt field. (See install instructions above.)
 - Native input() function in Python 2.7 expects an expression or function, and not a user input string. raw_input() in 2.7 is equivalent to input() in 3.x.  PyInputPlus uses the 3.x style.  **Workaround** is to hack PyInputPlus, changing input() to raw_input(). (See install instructions above.)
 - Likely issue when running setup. Issue is in get_form_id().  If only 1 form returned, then PyInputPlus may error out. **Workaround** by adding a second form to JotForm.
 - Questions that are hidden in JotForm may send no `answer`.  This causes an unhandled error in `get_answer_element`. **Workaround** is to disable "clear hidden items" and to dynamically hide questions using conditions in JotForm. This ensures that the default answer (null answer) is stored on submission.
 
 ## Future features
-- Running setup additional times will update all fields, but will not remove mappings that no longer apply.  Setup logic likely needs a rewrite to fix.  **Workaround** by deleting datamap.json and run setup from the beginning.
+- Full rewrite of setup routine.
+  - Improved menu system.
+  - Additional automation to remove manual setup steps.
+  - **Note**: In current version running setup additional times will update all fields, but will not remove mappings that no longer apply.  **Workaround** by deleting datamap.json and run setup from the beginning.
+- Abandon Python 2 support.
+- Notifications integration to Slack using webhook.
 
 ## Change Log
 - 0.9 Beta - Initial release
@@ -90,3 +95,6 @@ This procedure assumes that you have already installed freeZTP and it is running
 - 0.9.3 Beta
   - Altered update logic to automatically clear fields that have the Null Answer in the JotForm submission.  For CLI style, JFIT-ZTP now issues `ztp clear` commands as needed.  For CSV style, JFIT-ZTP will clear any data from the appropriate field.
   - Added simple WebEx Teams notification feature.  Add your Bot Token and room during setup. Mardown file with sample added to Git Repo under documentation.
+  - Fixed bug in dict_to_q_menu that occurs when JotForm returns non-contiguous numeric values in answer set.  Occurs when questions are removed from JotForm.
+- 0.9.4 Beta
+  - Added simple notifications integration for MS Teams via Power Automate. JFIT-ZTP will send a JSON formatted message to a Power Automate flow using the "When a HTTP request is received" trigger.  Power Automate can then process the message and deliver to the appropriate MS Teams room.

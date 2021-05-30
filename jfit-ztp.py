@@ -3,23 +3,22 @@
 ##               JotForm Form Import Tool for freeZTP                ##
 
 Author: Paul S. Chapman
-Version: 0.9.3 Beta
+Version: 0.9.4 Beta
 
-Open Caveats / Bugs / Limitations:
- 1. See README.md
-
-To Do List:
- 1. See README.md
- 2. Automate configuration of cron job
+Open Caveats / Bugs / Limitations: See README.md
+To Do List: See README.md
 """
 # Python native modules
 from os import path
+import os
+import socket
 import sys
 import subprocess
 import json
 import csv
 import logging
 import argparse
+from urllib.parse import ParseResultBytes
 if int(sys.version[:1]) == 3:
     from urllib.parse import quote
     import_log = 'Imported URLLib.Parse for Python 3.'
@@ -863,7 +862,6 @@ def get_room_id(bot_token, settings):
     
     return room_id
 
-
 def send_webex_msg(markdown):
     # Query JotForm for new Submissions
     # Inputs
@@ -883,6 +881,46 @@ def send_webex_msg(markdown):
     log.debug('Attempting to send message to Teams Room')
     if response.status_code != 200:
         log.warning('Send to WebEx Room Failed. Response Text:\r\n'
+                    + response.text + '\r\n\r\nStatus Code: '
+                    + str(response.status_code))
+
+def get_powerautomate_url(settings):
+    # Ask user for MS Power Automate (Azure) URL. Settings passed to offer
+    # option to use existing configuration.
+    # Inputs
+    # settings = {'azure_url': '<url string>'}
+    # Output
+    # azure_url = '<url string>'
+
+    print(constants.INFO_GET_POWER_AUTOMATE_URL)
+
+    old_vals = get_old_vals(settings, ['azure_url'])
+    if old_vals:
+        return old_vals[0]
+
+    prompt = 'Input the Power Automate URL (Azure). > '
+    azure_url = pyip.inputStr(
+        prompt=prompt,
+        blockRegexes=[
+            ('.{300,}', 'Answer too long.'),
+            (r'\ ', 'Spaces not allowed.')
+            ]
+        )
+    return azure_url
+
+def send_powerautomate_msg(url, payload):
+    # Query JotForm for new Submissions
+    # Inputs
+    # url = '<azure webhook url>'
+    # payload = '<JSON data>'
+    # Output
+    # None
+
+    headers = {'Content-Type': 'application/json'}
+    response = requests.request('POST', url, headers=headers, data=payload)
+    log.debug('Attempting to send message to MS Power Automate (Azure)')
+    if response.status_code not in range (200,299):
+        log.warning('Send to MS Power Automate Failed. Response Text:\r\n'
                     + response.text + '\r\n\r\nStatus Code: '
                     + str(response.status_code))
 
@@ -907,6 +945,15 @@ def setup():
     else:
         bot_token = None
         room_id = None
+
+    # Enable MS Teams notifications via Power Automate
+    print(constants.INFO_POWER_AUTOMATE_INTEGRATION)
+    prompt = 'Enable notifications to Microsoft Power Automate? (y/N) > '
+    response = pyip.inputYesNo(prompt=prompt, blank=True)
+    if response == 'yes':
+        azure_url = get_powerautomate_url(settings)
+    else:
+        azure_url = None
 
     # Get sample data set for key map Q&A
     sample_data = get_sample_submission(api_key, form_id)
@@ -988,6 +1035,7 @@ def setup():
                   'null_answer': null_answer,
                   'bot_token': bot_token,
                   'room_id': room_id,
+                  'azure_url': azure_url,
                   'data_map': data_map}
 
     print('Config File Contents:\r\n' + json.dumps(new_config, indent=4))
@@ -997,11 +1045,22 @@ def setup():
     print('Configuration saved to disk.')
 
     if bot_token:
-        msg_form = ('#### JFIT Setup Complete\r\n'
+        mkdn_form = ('#### JFIT Setup Complete\r\n'
                     'Hi, your WebEx Teams Bot integration is working!!\r\n'
                     '\r\n---')
-        markdown = jinja(msg_form).render(config=new_config)
+        markdown = jinja(mkdn_form).render(config=new_config)
         send_webex_msg(markdown)
+
+    if azure_url:
+        msgblob = {}
+        msgblob['src-id'] = pyfile + '.' + hostfqdn
+        msgblob['type'] = 'status'
+        html_form = ('<p><strong>JFIT Setup Complete</strong></p>'
+                    '<p>Hi, your MS Power Automate integration is working!!'
+                    '</p><span style="display: none">')
+        msgblob['message'] = jinja(html_form).render(config=new_config)
+        payload = json.dumps(msgblob)
+        send_powerautomate_msg(azure_url, payload)
 
     if not test_mode:
         # Marking sample entry as read
@@ -1033,6 +1092,7 @@ def process_data():
     data_map = settings['data_map']
     api_key = settings['api_key']
     form_id = settings['form_id']
+    azure_url = settings['azure_url']
     restart_ztp = False
     submission_ids = []
     cmd_set = []
@@ -1061,10 +1121,19 @@ def process_data():
                 # Error logged in read_ext_keystore
                 sys.exit()
 
-        msg_form = ('#### JotForm Data Added to freeZTP\r\n'
+        mkdn_form = ('#### JotForm Data Added to freeZTP\r\n'
                     '{{ keystore_id }} ([{{ submission_id }}]'
                     '(https://jotform.com/edit/{{ submission_id }})) '
                     '\r\n\r\n---')
+
+        html_form = ('<p><strong>JotForm Data Added to freeZTP</strong></p>'
+                    '<p>{{ keystore_id }} (<a href="https://jotform.com/edit'
+                    '/{{ submission_id }}">{{ submission_id }}</a>)</p>'
+                    '<span style="display: none">')
+        msgblob = {}
+        msgblob['src-id'] = pyfile + '.' + hostfqdn
+        msgblob['type'] = 'status'
+
         # Loop through all entries
         for submission in response.json()['content']:
             # Build submission list.  Process all before marking as read.
@@ -1083,11 +1152,18 @@ def process_data():
                 restart_ztp = True if change_flag else restart_ztp
 
             if bot_token and keystore_id:
-                markdown = jinja(msg_form).render(
+                markdown = jinja(mkdn_form).render(
                     submission_id=submission['id'], keystore_id=keystore_id
                     )
                 send_webex_msg(markdown)
-        
+
+            if azure_url and keystore_id:
+                msgblob['message'] = jinja(html_form).render(
+                    submission_id=submission['id'], keystore_id=keystore_id
+                    )
+                payload = json.dumps(msgblob)
+                send_powerautomate_msg(azure_url, payload)
+
         # Post processing tasks (e.g. restart ZTP)
         log.info('All submissions processed.')
         log.debug('Submission Set: ' + ' '.join(submission_ids))
@@ -1131,11 +1207,13 @@ def process_data():
     log.info('Script Execution Complete')
 
 def main():
-    global config_file, test_mode, log
+    global config_file, test_mode, log, pyfile, hostfqdn
 
     config_file = 'datamap.json'
     log_file = 'jfit-ztp.log'
     file_level = logging.INFO
+    pyfile = (os.path.basename(__file__).lower())
+    hostfqdn = (socket.getfqdn().lower())
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', '--setup', action='store_true', help='Run setup')
@@ -1143,6 +1221,8 @@ def main():
                         help='Print informational messages to console')
     parser.add_argument('-d', '--debug', action='store_true',
                         help='Print debug messages to console')
+    parser.add_argument('-t', '--test', action='store_true',
+                        help=argparse.SUPPRESS)
     args = parser.parse_args()
 
     if args.debug:
@@ -1157,7 +1237,7 @@ def main():
 
     # Author's test harness. Disables sending commands to CLI and disables
     # JotForm submission marking (setup and process_data)
-    test_mode = False
+    test_mode = args.test
     if test_mode:
         log.info('Test Mode Enabled - No ZTP updates / JotForm Read marks.')
     else:
