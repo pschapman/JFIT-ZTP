@@ -1,4 +1,4 @@
-# pylint: disable=too-many-lines, logging-not-lazy
+# pylint: disable=too-many-lines, logging-not-lazy, redefined-outer-name, global-variable-undefined
 """
 ##                             JFIT-ZTP                              ##
 ##               JotForm Form Import Tool for freeZTP                ##
@@ -225,7 +225,7 @@ def read_config(config_file):
     """
     config = None
     if path.exists(config_file):
-        with open(config_file) as f:
+        with open(config_file, encoding='utf-8') as f:
             config = json.load(f)
         log.debug('Imported configuration from file, ' + config_file)
     else:
@@ -246,7 +246,7 @@ def read_ext_keystore(ext_keystore_file):
             csv_data = {'MYHOSTNAME': {'keystore_id': 'myhostname', 'var': 'value'}}
     """
     if path.exists(ext_keystore_file):
-        csv_path = open(ext_keystore_file, 'r')
+        csv_path = open(ext_keystore_file, 'r', encoding='utf-8')
         reader = csv.DictReader(csv_path)
         headers = reader.fieldnames
         csv_data = {}
@@ -278,10 +278,10 @@ def write_ext_keystore(ext_keystore_file, headers, csv_data):
 
     try:
         # Python 3 style
-        csv_path = open(ext_keystore_file, 'w', newline='')
+        csv_path = open(ext_keystore_file, 'w', newline='', encoding='utf-8')
     except:
         # Python 2 style
-        csv_path = open(ext_keystore_file, 'w')
+        csv_path = open(ext_keystore_file, 'w', encoding='utf-8')
 
     writer = csv.DictWriter(csv_path, fieldnames=headers)
     writer.writeheader()
@@ -371,7 +371,7 @@ def check_api_key(api_key):
     payload = None
     try:
         int(api_key, 16)
-    except:
+    except ValueError:
         print('Answer not Hex value.')
         return None
     response = requests.request('GET', url, headers=headers, data=payload)
@@ -424,7 +424,7 @@ def get_csv_path():
             print('Cannot find file: "' + csv_path + '"')
             result = pyip.inputYesNo('Create empty file? (y/N) > ', blank=True)
             if result == 'yes':
-                open(csv_path, 'x')
+                open(csv_path, 'x', encoding='utf-8')
                 validated = True
     return csv_path
 
@@ -502,7 +502,7 @@ def dict_to_q_menu(ans_set):
         q_text = inner_dict['text']
         try:
             q_answer = inner_dict['answer']
-        except:
+        except KeyError:
             q_answer = 'None'
 
         # PyIP returns answer text, not answer #.  Control string used for item
@@ -1076,7 +1076,7 @@ def setup():
                   'data_map': data_map}
 
     print('Config File Contents:\r\n' + json.dumps(new_config, indent=4))
-    with open(config_file, 'w') as f:
+    with open(config_file, 'w', encoding='utf-8') as f:
         json.dump(new_config, f, indent=4)
     f.close()
     print('Configuration saved to disk.')
