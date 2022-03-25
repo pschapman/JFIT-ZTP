@@ -1,6 +1,12 @@
 # UNDER DEVELOPMENT
 Not ready for production use.  Use main!
 
+---
+
+---
+
+---
+
 # JotForm Form Import Tool for freeZTP (JFIT-ZTP)
 ## Introduction
 JFIT-ZTP is simply a data extraction tool.  It maps answer data from JotForm to functional configuration for freeZTP.
@@ -36,6 +42,7 @@ These have been tested so far.  Install instructions based on tested platforms.
 
 ## Installation
 This procedure assumes that you have already installed freeZTP and it is running as expected.
+NOTE: JFIT-ZTP relies on external modules downloaded by the freeZTP installer. If not already installed, ensure that both requests and jinja2 are available on the system.
 1. Log in with same account that ZTP is running under
 2. Elevate your permissions
    1. `sudo su`
@@ -53,20 +60,20 @@ This procedure assumes that you have already installed freeZTP and it is running
    1. `cd jfit-ztp`
 7. Run JFIT-ZTP setup
    1. `python jfit-ztp.py -s` or `python jfit-ztp.py --setup`
-8. Carefully read prompts and answer accurately
-   1. Provide your API Key
-   2. Select Form that is used for this project from list
-   3. Input delimiter for compound answers
-   4. Select CSV or CLI execution mode from list
-   5. Input JotForm Default Answer
-   6. As prompted, create a sample submission for your form
-   7. Select sample submission from list
-   8. Select whether Association (template) data will come from Jotform
-   9. Select answer in submission that contains the keystore ID (hostname)
-   10. Select whether ZTP will be building stacks
-   11. Select answer for each stack member that contains the device ID (idarray)
-   12. Select whether additional Custom Variables should be mapped
-9. Configure JFIT-ZTP to run as a cron job
+8.  Carefully read prompts and answer accurately
+   2. Provide your API Key
+   3. Select Form that is used for this project from list
+   4. Input delimiter for compound answers
+   5. Select CSV or CLI execution mode from list
+   6. Input JotForm Default Answer
+   7. As prompted, create a sample submission for your form
+   8. Select sample submission from list
+   9. Select whether Association (template) data will come from Jotform
+   10. Select answer in submission that contains the keystore ID (hostname)
+   11. Select whether ZTP will be building stacks
+   12. Select answer for each stack member that contains the device ID (idarray)
+   13. Select whether additional Custom Variables should be mapped
+9.  Configure JFIT-ZTP to run as a cron job
     1.  `crontab -e`
     2.  Add: `* * * * * cd /<path>/jfit-ztp && python jfit-ztp.py`
     3.  Save update and exit
