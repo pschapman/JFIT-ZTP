@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines, logging-not-lazy
 """
 ##                             JFIT-ZTP                              ##
 ##               JotForm Form Import Tool for freeZTP                ##
@@ -20,34 +21,34 @@ import logging
 import argparse
 if int(sys.version[:1]) == 3:
     from urllib.parse import quote
-    import_log = 'Imported URLLib.Parse for Python 3.'
+    INITMSG = 'Imported URLLib.Parse for Python 3.'
 else:
     from urllib import quote # pylint: disable=no-name-in-module
-    import_log = 'Imported URLLib for Python 2.'
+    INITMSG = 'Imported URLLib for Python 2.'
 
 # External modules. Installed by freeztpInstaller.
-import requests
-from jinja2 import Template as jinja
+import requests # pylint: disable=wrong-import-position
+from jinja2 import Template as jinja # pylint: disable=wrong-import-position
 
 # External modules. Separate install required.
 try:
     import pyinputplus as pyip
-except:
+except ModuleNotFoundError:
     print('Install module PyInputPlus. (e.g. pip install pyinputplus)')
     sys.exit()
 
 # Private modules
-import constants
+import constants # pylint: disable=wrong-import-position
 
 def submission_to_cli(ans_set, data_map):
-    # Generates ZTP CLI commands from JotForm Data
-    # Inputs
-    # ans_set = {'1': {'text': 'Question 1', 'answer': 'myhostname'}}
-    # data_map = {'varname': {'qID': '1', 'index': 0}}
-    # Outputs
-    # cmd_set = ['ztp set idarray <name> <serial>', 'another ztp command']
-    # keystore_id = '<string>'
-
+    """
+    Generates ZTP CLI commands from JotForm Data
+        Parameters:
+            ans_set = {'1': {'text': 'Question 1', 'answer': 'myhostname'}}
+        Returns:
+            cmd_set = ['ztp set idarray <name> <serial>', 'another ztp command']
+            keystore_id = '<string>'
+    """
     cmd_set = []
     device_id_set = []
 
@@ -99,18 +100,19 @@ def submission_to_cli(ans_set, data_map):
     return cmd_set, keystore_id
 
 def submission_to_csv(ans_set, data_map, headers, csv_data):
-    # Update external keystore fields / rows from JotForm Data
-    # Inputs
-    # ans_set = {'1': {'text': 'Question 1', 'answer': 'myhostname'}}
-    # data_map = {'varname': {'qID': '1', 'index': 0}}
-    # headers = ['keystore_id', 'var_1', 'var_x']
-    # csv_data = {'MYHOSTNAME': {'keystore_id': 'myhostname', 'var': 'value'}}
-    # Outputs
-    # headers <altered list if any headers missing>
-    # csv_data <altered entries, same as above format>
-    # True/False indicating whether changes were made (ztp restart)
-    # keystore_id = '<string>' or None
-
+    """
+    Update external keystore fields / rows from JotForm Data
+        Parameters:
+            ans_set = {'1': {'text': 'Question 1', 'answer': 'myhostname'}}
+            data_map = {'varname': {'qID': '1', 'index': 0}}
+            headers = ['keystore_id', 'var_1', 'var_x']
+            csv_data = {'MYHOSTNAME': {'keystore_id': 'myhostname', 'var': 'value'}}
+        Returns:
+            headers <altered list if any headers missing>
+            csv_data <altered entries, same as above format>
+            True/False indicating whether changes were made (ztp restart)
+            keystore_id = '<string>' or None
+    """
     # Create empty change list
     csv_update = {}
 
@@ -144,25 +146,26 @@ def submission_to_csv(ans_set, data_map, headers, csv_data):
         log.warning('Received unknown ID, ' + keystore_id + ', and Unknown '
                     'Import is disabled.  Item skipped / ignored.')
         return headers, csv_data, False, None
-    
+
     # Apply change list to CSV Data
     headers, csv_data = update_csv_data(csv_data, headers,
                                         keystore_id, csv_update)
-    
+
     log.info('Finished updating CSV values for ' + keystore_id)
     return headers, csv_data, True, keystore_id
 
 def update_csv_data(csv_data, headers, keystore_id, csv_update):
-    # Update external keystore fields / rows from JotForm Data
-    # Inputs
-    # csv_data = {'MYHOSTNAME': {'keystore_id': 'myhostname', 'var': 'value'}}
-    # headers = ['keystore_id', 'var_1', 'var_x']
-    # keystore_id = 'myhostname'
-    # csv_update = {'var_1': 'newdata', 'var_n': 'newdata'}
-    # Outputs
-    # headers <altered list if any headers missing>
-    # csv_data <altered entries, same as above format>
-
+    """
+    Update external keystore fields / rows from JotForm Data
+        Parameters:
+            csv_data = {'MYHOSTNAME': {'keystore_id': 'myhostname', 'var': 'value'}}
+            headers = ['keystore_id', 'var_1', 'var_x']
+            keystore_id = 'myhostname'
+            csv_update = {'var_1': 'newdata', 'var_n': 'newdata'}
+        Returns:
+            headers <altered list if any headers missing>
+            csv_data <altered entries, same as above format>
+    """
     data = csv_data[keystore_id.upper()]
 
     for key, value in csv_update.items():
@@ -176,29 +179,30 @@ def update_csv_data(csv_data, headers, keystore_id, csv_update):
         if key not in headers:
             headers.append(key)
             log.debug('Header for "' + key + '" missing. Adding now.')
-        
+
         data.update({key: value})
         csv_data.update({keystore_id.upper(): data})
         log.debug('Updating "' + key + '" as "' + str(value) + '" for "'
                   + keystore_id + '".')
-    
+
     return headers, csv_data
 
 def get_answer_element(answer_dict, ans_idx):
-    # Extract answer string or partial answer string if delimiter present
-    # Inputs
-    # ans_dict = {'text': 'Question 2', 'answer': 'myserial : mymodel'}
-    # ans_idx = 1
-    # Outputs (watch delimiter)
-    # 'mymodel'
-
+    """
+    Extract answer string or partial answer string if delimiter present
+        Parameters:
+            ans_dict = {'text': 'Question 2', 'answer': 'myserial : mymodel'}
+            ans_idx = 1
+        Returns: (watch delimiter)
+            'mymodel'
+    """
     full_answer = answer_dict['answer']
     split_answer = full_answer.split(delimiter)
     log.debug('Full Answer Text from JotForm: ' + full_answer)
 
     if ans_idx + 1 > len(split_answer) and full_answer != null_answer:
-        log.warning('JotForm answer has ' + str(len(split_answer)) + 
-                    ' element(s).  Data Map looking for value in element ' + 
+        log.warning('JotForm answer has ' + str(len(split_answer)) +
+                    ' element(s).  Data Map looking for value in element ' +
                     str(ans_idx + 1) + '. Possible delimiter mismatch or Data '
                     'Map is wrong.  Re-run setup to alter Data Map.')
         return None
@@ -212,12 +216,13 @@ def get_answer_element(answer_dict, ans_idx):
         return None
 
 def read_config(config_file):
-    # Update external keystore fields / rows from JotForm Data
-    # Inputs
-    # config_file = '/path/to/jfit-ztp-folder/datamap.json'
-    # Outputs
-    # config = {'api_key': '<key>', '<vars>': '<values>', 'data_map': {<map>}}
-
+    """
+    Update external keystore fields / rows from JotForm Data
+        Parameters:
+            config_file = '/path/to/jfit-ztp-folder/datamap.json'
+        Returns:
+            config = {'api_key': '<key>', '<vars>': '<values>', 'data_map': {<map>}}
+    """
     config = None
     if path.exists(config_file):
         with open(config_file) as f:
@@ -232,13 +237,14 @@ def read_config(config_file):
         return None
 
 def read_ext_keystore(ext_keystore_file):
-    # Update external keystore fields / rows from JotForm Data
-    # Inputs
-    # ext_keystore_file = '/path/to/ztp-folder/keystore.csv'
-    # Outputs
-    # headers = ['keystore_id', 'var_1', 'var_x']
-    # csv_data = {'MYHOSTNAME': {'keystore_id': 'myhostname', 'var': 'value'}}
-
+    """
+    Update external keystore fields / rows from JotForm Data
+        Parameters:
+            ext_keystore_file = '/path/to/ztp-folder/keystore.csv'
+        Returns:
+            headers = ['keystore_id', 'var_1', 'var_x']
+            csv_data = {'MYHOSTNAME': {'keystore_id': 'myhostname', 'var': 'value'}}
+    """
     if path.exists(ext_keystore_file):
         csv_path = open(ext_keystore_file, 'r')
         reader = csv.DictReader(csv_path)
@@ -250,23 +256,24 @@ def read_ext_keystore(ext_keystore_file):
             csv_data[row['keystore_id'].upper()] = row
             counter += 1
         log.info('Read ' + str(counter) + ' line(s) from external keystore.')
-        
+
         csv_path.close()
         log.debug('Imported external keystore from file, ' + ext_keystore_file)
         return headers, csv_data
-    
+
     else:
         log.warning('Referenced keystore is missing and execution mode is '
                     'CSV. Create keystore file or re-run setup.')
         return None, None
 
 def write_ext_keystore(ext_keystore_file, headers, csv_data):
-    # Update external keystore fields / rows from JotForm Data
-    # Inputs
-    # ext_keystore_file = '/path/to/ztp-folder/keystore.csv'
-    # headers = ['keystore_id', 'var_1', 'var_x']
-    # csv_data = {'MYHOSTNAME': {'keystore_id': 'myhostname', 'var': 'value'}}
-
+    """
+    Update external keystore fields / rows from JotForm Data
+        Parameters:
+            ext_keystore_file = '/path/to/ztp-folder/keystore.csv'
+            headers = ['keystore_id', 'var_1', 'var_x']
+            csv_data = {'MYHOSTNAME': {'keystore_id': 'myhostname', 'var': 'value'}}
+    """
     counter = 0
 
     try:
@@ -284,17 +291,18 @@ def write_ext_keystore(ext_keystore_file, headers, csv_data):
         writer.writerow(value)
         counter += 1
     log.info('Wrote ' + str(counter) + ' line(s) to external keystore.')
-    
+
     csv_path.close()
 
 def get_new_submissions(api_key, form_id):
-    # Query JotForm for new Submissions
-    # Inputs
-    # api_key = '<hex string>'
-    # form_id = '<numeric string>'
-    # Output
-    # <Requests Response Object with all properties>
-
+    """
+    Query JotForm for new Submissions
+        Parameters:
+            api_key = '<hex string>'
+            form_id = '<numeric string>'
+        Returns:
+            <Requests Response Object with all properties>
+    """
     base_url = 'https://api.jotform.com/form/'
     api_filter = '?filter=' + quote('{"status":"ACTIVE","new":"1"}')
     url = (base_url + form_id + '/submissions' + api_filter)
@@ -305,13 +313,14 @@ def get_new_submissions(api_key, form_id):
     return response
 
 def mark_submissions_read(api_key, submission_ids):
-    # Query JotForm for new Submissions
-    # Inputs
-    # api_key = '<hex string>'
-    # submission_ids = ['<numeric string>', '<numeric string>']
-    # Output
-    # <Requests Response Object with all properties> or None
-
+    """
+    Query JotForm for new Submissions
+        Parameters:
+            api_key = '<hex string>'
+            submission_ids = ['<numeric string>', '<numeric string>']
+        Returns:
+            <Requests Response Object with all properties> or None
+    """
     err_set = None
     base_url = 'https://api.jotform.com/submission/'
     headers = {'APIKEY': api_key}
@@ -324,7 +333,7 @@ def mark_submissions_read(api_key, submission_ids):
             log.warning('HTTP response from Jotform not 200. Full response '
                         'text:\r\n' + response.text + '\r\n\r\nActual status '
                         'code: ' + str(response.status_code))
-    
+
     # Error checking in calling code.
     if err_set:
         return response
@@ -332,16 +341,17 @@ def mark_submissions_read(api_key, submission_ids):
         return None
 
 def exec_cmds(cmd_set):
-    # Send freeZTP commands to system CLI
-    # Inputs
-    # cmd_set = ['ztp set idarray <name> <serial>', 'another ztp command']
-    # Output
-    # True / False indicating success / failure
-
+    """
+    Send freeZTP commands to system CLI
+        Parameters:
+            cmd_set = ['ztp set idarray <name> <serial>', 'another ztp command']
+        Returns:
+            True / False indicating success / failure
+    """
     for command in cmd_set:
         process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
         output = process.communicate()[0]
-    
+
     # Last command restarts ZTP. Verify status. Error check in calling code.
     if '(running)' in output:
         return True
@@ -349,12 +359,13 @@ def exec_cmds(cmd_set):
         return False
 
 def check_api_key(api_key):
-    # Send test query to JotForm. Calling code determines pass/fail actions.
-    # Inputs
-    # api_key = '<hex string>'
-    # Output
-    # True / None indicating success / failure
-
+    """
+    Send test query to JotForm. Calling code determines pass/fail actions.
+        Parameters:
+            api_key = '<hex string>'
+        Returns:
+            True / None indicating success / failure
+    """
     url = 'https://api.jotform.com/user/usage'
     headers = {'APIKEY': api_key}
     payload = None
@@ -371,13 +382,13 @@ def check_api_key(api_key):
         return None
 
 def query_available_forms(api_key):
-    # Request list of "enabled" forms available to API Key
-    # Inputs
-    # api_key = '<hex string>'
-    # Output
-    # None or
-    # form_set = {'My Form Title': '<num str>', 'My Form Title2': '<num str>'}
-
+    """
+    Request list of "enabled" forms available to API Key
+        Parameters:
+            api_key = '<hex string>'
+        Returns:
+            form_set = {'My Form Title': '<num str>', 'My Form Title2': '<num str>'}
+    """
     base_url = 'https://api.jotform.com/user/forms'
     api_filter = '?limit=1000&filter=' + quote('{"status":"ENABLED"}')
     url = (base_url + api_filter)
@@ -391,17 +402,18 @@ def query_available_forms(api_key):
             # form_name = form['title'].encode('ascii')
             # form_set.update({form_name.strip(): form['id']})
             form_set.update({form['title']: form['id']})
-    
+
     if len(form_set) > 0:
         return form_set
     else:
         return None
 
 def get_csv_path():
-    # Ask user for external keystore path. Validate existance. Retry as needed.
-    # Output
-    # csv_path = '/path/to/ztp-folder/keystore.csv'
-
+    """
+    Ask user for external keystore path. Validate existance. Retry as needed.
+        Returns:
+            csv_path = '/path/to/ztp-folder/keystore.csv'
+    """
     validated = False
     prompt = 'Enter explicit path to keystore file. (ex. /etc/my.csv) > '
     while not validated:
@@ -417,10 +429,11 @@ def get_csv_path():
     return csv_path
 
 def get_import_unknown():
-    # Ask user how to deal with unknown keystore ids
-    # Output
-    # True / False
-
+    """
+    Ask user how to deal with unknown keystore ids
+        Returns:
+            True / False
+    """
     print(constants.INFO_IMPORT_UNKNOWN)
     prompt = 'Enable Unknown ID Import? (y/N) > '
     import_unknown = pyip.inputYesNo(prompt=prompt, blank=True)
@@ -430,14 +443,15 @@ def get_import_unknown():
         return False
 
 def get_sample_submission(api_key, form_id):
-    # Instruct user to submit jotform. Wait for submission. Use data to map
-    # answers to freeZTP usable data.
-    # Inputs
-    # api_key = '<hex string>'
-    # form_id = '<num string>'
-    # Output
-    # submission = {'id': '<num str>, '<vars>': '<vals>', 'answers': {<dict>}}
-
+    """
+    Instruct user to submit jotform. Wait for submission. Use data to map
+    answers to freeZTP usable data.
+        Parameters:
+            api_key = '<hex string>'
+            form_id = '<num string>'
+        Returns:
+            submission = {'id': '<num str>, '<vars>': '<vals>', 'answers': {<dict>}}
+    """
     print(constants.INFO_SAMPLE_SUBMISSION)
     prompt = 'Hit <enter> after Form is submitted... > '
     pyip.inputStr(prompt=prompt, blank=True)
@@ -452,7 +466,7 @@ def get_sample_submission(api_key, form_id):
         for submission in response.json()['content']:
             # submission_ids.append(submission['id'].encode('ascii'))
             submission_ids.append(submission['id'])
-        
+
         if count == 1:
             prompt = 'Select item or hit <enter>. > \r\n'
         else:
@@ -476,12 +490,13 @@ def get_sample_submission(api_key, form_id):
         sys.exit()
 
 def dict_to_q_menu(ans_set):
-    # Create Q&A list for use in PyInputPlus menus.
-    # Inputs
-    # ans_set = {'1': {'text': 'Question 1', 'answer': 'myhostname'}}
-    # Output
-    # ans_menu = ['Question: Q1 / Answer: A1 / Control:000x']
-
+    """
+    Create Q&A list for use in PyInputPlus menus.
+        Parameters:
+            ans_set = {'1': {'text': 'Question 1', 'answer': 'myhostname'}}
+        Returns:
+            ans_menu = ['Question: Q1 / Answer: A1 / Control:000x']
+    """
     ans_menu = []
     for q_id_num, inner_dict in ans_set.items():
         q_text = inner_dict['text']
@@ -498,13 +513,14 @@ def dict_to_q_menu(ans_set):
     return ans_menu
 
 def get_api_key(settings):
-    # Ask user for JotForm API Key. settings passed to offer option to use
-    # existing configuration.
-    # Inputs
-    # settings = {'api_key': '<key>', '<vars>': '<vals>', 'data_map': {<map>}}
-    # Output
-    # api_key = '<hex string>'
-
+    """
+    Ask user for JotForm API Key. settings passed to offer option to use
+    existing configuration.
+        Parameters:
+            settings = {'api_key': '<key>', '<vars>': '<vals>', 'data_map': {<map>}}
+        Returns:
+            api_key = '<hex string>'
+    """
     print(constants.INFO_GET_API_KEY)
 
     old_vals = get_old_vals(settings, ['api_key'])
@@ -527,13 +543,14 @@ def get_api_key(settings):
     return api_key
 
 def get_form_id(api_key, settings):
-    # Ask user for JotForm Form ID. settings passed to offer option to use
-    # existing configuration.
-    # Inputs
-    # settings = {'api_key': '<key>', '<vars>': '<vals>', 'data_map': {<map>}}
-    # Output
-    # form_id = '<num str>'
-
+    """
+    Ask user for JotForm Form ID. settings passed to offer option to use
+    existing configuration.
+        Parameters:
+            settings = {'api_key': '<key>', '<vars>': '<vals>', 'data_map': {<map>}}
+        Returns:
+            form_id = '<num str>'
+    """
     print(constants.INFO_GET_FORM_ID)
 
     old_vals = get_old_vals(settings, ['form_id'])
@@ -551,13 +568,14 @@ def get_form_id(api_key, settings):
     return data[form_name]
 
 def get_delimiter(settings):
-    # Ask user for delimiter value. settings passed to offer option to use
-    # existing configuration.
-    # Inputs
-    # settings = {'api_key': '<key>', '<vars>': '<vals>', 'data_map': {<map>}}
-    # Output
-    # delimiter = '<single character>'
-
+    """
+    Ask user for delimiter value. settings passed to offer option to use
+    existing configuration.
+        Parameters:
+            settings = {'api_key': '<key>', '<vars>': '<vals>', 'data_map': {<map>}}
+        Returns:
+            delimiter = '<single character>'
+    """
     print(constants.INFO_GET_DELIMITER)
 
     old_vals = get_old_vals(settings, ['delimiter'])
@@ -576,13 +594,14 @@ def get_delimiter(settings):
     return delimiter
 
 def get_exec_mode(settings):
-    # Ask user for Configuration Mode. settings passed to offer option to use
-    # existing configuration.
-    # Inputs
-    # settings = {'api_key': '<key>', '<vars>': '<vals>', 'data_map': {<map>}}
-    # Output
-    # exec_mode = '<csv or cli>'
-
+    """
+    Ask user for Configuration Mode. settings passed to offer option to use
+    existing configuration.
+        Parameters:
+            settings = {'api_key': '<key>', '<vars>': '<vals>', 'data_map': {<map>}}
+        Returns:
+            exec_mode = '<csv or cli>'
+    """
     print(constants.INFO_GET_EXEC_MODE)
 
     old_vals = get_old_vals(settings, ['exec_mode',
@@ -592,7 +611,7 @@ def get_exec_mode(settings):
         csv_path = old_vals[1]
         import_unknown = old_vals[2]
         return exec_mode, csv_path, import_unknown
-    
+
     prompt = 'Select script mode. (enter for default [csv]) \r\n'
     exec_mode = pyip.inputMenu(['CLI', 'CSV'], prompt=prompt,
                                blank=True, numbered=True)
@@ -605,13 +624,14 @@ def get_exec_mode(settings):
         return exec_mode, None, False
 
 def get_null_answer(settings):
-    # Ask user for Null Answer. settings passed to offer option to use
-    # existing configuration.
-    # Inputs
-    # settings = {'api_key': '<key>', '<vars>': '<vals>', 'data_map': {<map>}}
-    # Output
-    # null_answer = '<string>'
-
+    """
+    Ask user for Null Answer. settings passed to offer option to use
+    existing configuration.
+        Parameters:
+            settings = {'api_key': '<key>', '<vars>': '<vals>', 'data_map': {<map>}}
+        Returns:
+            null_answer = '<string>'
+    """
     print(constants.INFO_GET_NULL_ANSWER)
 
     old_vals = get_old_vals(settings, ['null_answer'])
@@ -625,18 +645,19 @@ def get_null_answer(settings):
     return null_answer
 
 def get_ordinals(ans_set, ans_menu, var_name, prompt):
-    # Parse selected answer and ask user to choose sub-answer, if present.
-    # Result is ordinal values for 1) which item in the JotForm answer set
-    # contains the answer, then 2) which sub-item (if delimiter in string) is
-    # the actual value to use.
-    # Inputs
-    # ans_set = {'1': {'text': 'Question 1', 'answer': 'myhostname'}}
-    # ans_menu = ['Question: Q1 / Answer: A1 / Control:000x']
-    # var_name = 'keystore_id'
-    # prompt = 'Answer with keystore ID?'
-    # Output
-    # map_dict = {'qID': '1', 'index': 0}
-
+    """
+    Parse selected answer and ask user to choose sub-answer, if present.
+    Result is ordinal values for 1) which item in the JotForm answer set
+    contains the answer, then 2) which sub-item (if delimiter in string) is
+    the actual value to use.
+        Parameters:
+            ans_set = {'1': {'text': 'Question 1', 'answer': 'myhostname'}}
+            ans_menu = ['Question: Q1 / Answer: A1 / Control:000x']
+            var_name = 'keystore_id'
+            prompt = 'Answer with keystore ID?'
+        Returns:
+            map_dict = {'qID': '1', 'index': 0}
+    """
     spaced_delimiter = ' ' + delimiter + ' '
     response = None
     prompt = '\r\n\r\n' + prompt
@@ -676,15 +697,16 @@ def get_ordinals(ans_set, ans_menu, var_name, prompt):
     return {'qID': q_id, 'index': ans_idx}
 
 def get_answer(ans_set, var_name, var_dict):
-    # Abbreviated version of submission_to_[csv/cli] for setup.  Extracts
-    # answer to show to user in setup menu.
-    # Inputs
-    # ans_set = {'1': {'answer': 'Answer'}}
-    # var_name = 'keystore_id'
-    # var_dict = {'keystore_id': {'qID': '1', 'index': 0}}
-    # Output
-    # None or <text, see below>
-
+    """
+    Abbreviated version of submission_to_[csv/cli] for setup.  Extracts
+    answer to show to user in setup menu.
+        Parameters:
+            ans_set = {'1': {'answer': 'Answer'}}
+            var_name = 'keystore_id'
+            var_dict = {'keystore_id': {'qID': '1', 'index': 0}}
+        Returns:
+        None or <text, see below>
+    """
     q_id = var_dict[var_name]['qID']
     ans_idx = var_dict[var_name]['index']
     ans_dict = ans_set[q_id]
@@ -698,17 +720,18 @@ def get_answer(ans_set, var_name, var_dict):
     return text
 
 def get_old_vals(var_dict, var_list, ans_set=None):
-    # Extracts 1 or more settings from old settings file. Composes question
-    # showing old values and/or data from sample submission.
-    # Inputs
-    # var_dict = {'keystore_id': {'qID': '1', 'index': 0}}
-    # var_dict = {'delimiter': ':'}
-    # var_list = ['exec_mode', 'csv_path', 'import_unknown']
-    # var_list = ['delimiter']
-    # ans_set = *** Optional Answers dictionary from Jotform ***
-    # Output
-    # var_list_data = ['val1', valx']
-
+    """
+    Extracts 1 or more settings from old settings file. Composes question
+    showing old values and/or data from sample submission.
+        Parameters:
+            var_dict = {'keystore_id': {'qID': '1', 'index': 0}}
+            var_dict = {'delimiter': ':'}
+            var_list = ['exec_mode', 'csv_path', 'import_unknown']
+            var_list = ['delimiter']
+            ans_set = *** Optional Answers dictionary from Jotform ***
+        Returns:
+            var_list_data = ['val1', valx']
+    """
     review_info = {}
     var_list_data = []
     populated = True
@@ -745,13 +768,22 @@ def get_old_vals(var_dict, var_list, ans_set=None):
         return None
 
 def config_logging(log_file, file_level, console_level=None):
+    """
+    Start up and configure logging
+        Parameters:
+            log_file = Log file location
+            file_level = Logging level for file logging
+            console_level = Logging level for console logging
+        Returns:
+            log = logging object
+    """
     # Create logger object
     log = logging.getLogger('default')
     log.setLevel(logging.DEBUG)
     # Create formatter
     formatter = logging.Formatter('%(asctime)s.%(msecs)03d %(levelname)s:'
         '%(funcName)s:%(lineno)s %(message)s', '%Y-%m-%d %H:%M:%S')
-    
+
     # Create and configure file handler
     fh = logging.FileHandler(log_file)
     fh.setLevel(file_level)
@@ -768,13 +800,14 @@ def config_logging(log_file, file_level, console_level=None):
     return log
 
 def get_bot_token(settings):
-    # Ask user for WebEx Bot Token. settings passed to offer option to use
-    # existing configuration.
-    # Inputs
-    # settings = {'bot_token': '<key>', '<vars>': '<vals>', 'data_map': {<map>}}
-    # Output
-    # bot_token = '<string>'
-
+    """
+    Ask user for WebEx Bot Token. settings passed to offer option to use
+    existing configuration.
+        Parameters:
+            settings = {'bot_token': '<key>', '<vars>': '<vals>', 'data_map': {<map>}}
+        Returns:
+            bot_token = '<string>'
+    """
     print(constants.INFO_GET_BOT_TOKEN)
 
     old_vals = get_old_vals(settings, ['bot_token'])
@@ -797,13 +830,14 @@ def get_bot_token(settings):
     return bot_token
 
 def query_available_rooms(bot_token):
-    # Request list of rooms accessible to Bot
-    # Inputs
-    # bot_token = '<string>'
-    # Output
-    # None or
-    # form_set = {'My Room Title': '<str>', 'My Room Title2': '<str>'}
-
+    """
+    Request list of rooms accessible to Bot
+        Parameters:
+            bot_token = '<string>'
+        Returns:
+            None or
+            form_set = {'My Room Title': '<str>', 'My Room Title2': '<str>'}
+    """
     url = 'https://webexapis.com/v1/rooms'
     headers = {
         'Content-Type': 'application/json',
@@ -818,20 +852,21 @@ def query_available_rooms(bot_token):
     else:
         print('Room Query Failure. Status Code: ' + str(response.status_code)
               + '\r\nResponse Text:\r\n\r\n' + response.text)
-    
+
     if len(room_set) > 0:
         return room_set
     else:
         return None
 
 def get_room_id(bot_token, settings):
-    # Ask user for WebEx Room ID. settings passed to offer option to use
-    # existing configuration.
-    # Inputs
-    # settings = {'api_key': '<key>', '<vars>': '<vals>', 'data_map': {<map>}}
-    # Output
-    # room_id = '<string>'
-
+    """
+    Ask user for WebEx Room ID. settings passed to offer option to use
+    existing configuration.
+        Parameters:
+            settings = {'api_key': '<key>', '<vars>': '<vals>', 'data_map': {<map>}}
+        Returns:
+            room_id = '<string>'
+    """
     print(constants.INFO_GET_ROOM_ID)
 
     old_vals = get_old_vals(settings, ['room_id'])
@@ -858,18 +893,17 @@ def get_room_id(bot_token, settings):
             room_id = room_set.values()[0]
         else:
             room_id = room_set[room_name]
-    
+
     return room_id
 
 def send_webex_msg(markdown):
-    # Query JotForm for new Submissions
-    # Inputs
-    # markdown = '<message text in markdown format>'
-    # bot_token = '<string>'
-    # room_id = '<hex string>'
-    # Output
-    # None
-
+    """
+    Query JotForm for new Submissions
+        Parameters:
+            markdown = '<message text in markdown format>'
+            bot_token = '<string>'
+            room_id = '<hex string>'
+    """
     url = 'https://webexapis.com/v1/messages'
     headers = {
         'Content-Type': 'application/json',
@@ -884,13 +918,14 @@ def send_webex_msg(markdown):
                     + str(response.status_code))
 
 def get_powerautomate_url(settings):
-    # Ask user for MS Power Automate (Azure) URL. Settings passed to offer
-    # option to use existing configuration.
-    # Inputs
-    # settings = {'azure_url': '<url string>'}
-    # Output
-    # azure_url = '<url string>'
-
+    """
+    Ask user for MS Power Automate (Azure) URL. Settings passed to offer
+    option to use existing configuration.
+        Parameters:
+            settings = {'azure_url': '<url string>'}
+        Returns:
+            azure_url = '<url string>'
+    """
     print(constants.INFO_GET_POWER_AUTOMATE_URL)
 
     old_vals = get_old_vals(settings, ['azure_url'])
@@ -908,13 +943,13 @@ def get_powerautomate_url(settings):
     return azure_url
 
 def send_powerautomate_msg(url, payload):
-    # Query JotForm for new Submissions
-    # Inputs
-    # url = '<azure webhook url>'
-    # payload = '<JSON data>'
-    # Output
-    # None
-
+    """
+    Query JotForm for new Submissions
+        Parameters:
+            url = '<azure webhook url>'
+            payload = '<JSON data>'
+        Returns:
+    """
     headers = {'Content-Type': 'application/json'}
     response = requests.request('POST', url, headers=headers, data=payload)
     log.debug('Attempting to send message to MS Power Automate (Azure)')
@@ -924,6 +959,9 @@ def send_powerautomate_msg(url, payload):
                     + str(response.status_code))
 
 def setup():
+    """
+    Initial setup wizard
+    """
     global delimiter, null_answer, bot_token, room_id
     settings = read_config(config_file)
 
@@ -958,7 +996,7 @@ def setup():
     sample_data = get_sample_submission(api_key, form_id)
     ans_set = sample_data['answers']
     ans_menu = dict_to_q_menu(ans_set)
-    
+
     # Get old data map settings to offer reusable config
     data_map = settings['data_map'] if settings else {}
 
@@ -985,7 +1023,7 @@ def setup():
             prompt = 'Choose item that has value for ' + ztp_var + '? > \r\n'
             ans_ords = get_ordinals(ans_set, ans_menu, ztp_var, prompt)
         data_map.update({ztp_var: ans_ords})
-    
+
     print(constants.INFO_SWITCH_STACKS)
     prompt = 'Will this ZTP instance provision switch stacks? (Y/n) > '
     response = pyip.inputYesNo(prompt=prompt, blank=True)
@@ -1075,11 +1113,14 @@ def setup():
     print('SETUP COMPLETE!')
 
 def process_data():
+    """
+    Operational data processing
+    """
     settings = read_config(config_file)
     if not settings:
         # Error logged in read_config
         sys.exit()
-    
+
     global null_answer, delimiter, import_unknown, bot_token, room_id
     null_answer = settings['null_answer']
     delimiter = settings['delimiter']
@@ -1097,7 +1138,7 @@ def process_data():
     cmd_set = []
 
     response = get_new_submissions(api_key, form_id)
-    
+
     # Process data only if new entries exist
     if (response.status_code == 200
             and response.json()['resultSet']['count'] >= 1):
@@ -1113,7 +1154,7 @@ def process_data():
             log.warning('Insufficient remaining API calls to service current '
                   'submissions.  Stopping script without processing.')
             sys.exit()
-        
+
         if exec_mode == 'csv':
             headers, csv_data = read_ext_keystore(csv_path)
             if csv_data == None:
@@ -1178,7 +1219,7 @@ def process_data():
                     'Import disabled. Stopping script without marking new '
                     'submissions as "read".')
                 sys.exit()
-            
+
             cmd_set.append('ztp service restart')
             log.debug('Commands to be sent to freeZTP CLI:\r\n' +
                       '\r\n'.join(cmd_set))
@@ -1202,10 +1243,13 @@ def process_data():
     else:
         log.warning('Jotform Response & Headers (Plain):\r\n' + response.text +
                   '\r\n\r\n' + response.headers)
-    
+
     log.info('Script Execution Complete')
 
 def main():
+    """
+    Just what you think it is.
+    """
     global config_file, test_mode, log, pyfile, hostfqdn
 
     config_file = 'datamap.json'
@@ -1230,9 +1274,9 @@ def main():
         log = config_logging(log_file, file_level, console_level=logging.INFO)
     else:
         log = config_logging(log_file, file_level)
-    
+
     # Add events from top of script to log
-    log.debug(import_log)
+    log.debug(INITMSG)
 
     # Author's test harness. Disables sending commands to CLI and disables
     # JotForm submission marking (setup and process_data)
