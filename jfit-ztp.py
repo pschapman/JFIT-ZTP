@@ -51,7 +51,7 @@ def submission_to_cli(ans_set, data_map):
     q_id = ans_set[value['qID']]
     ans_idx = value['index']
     keystore_id = get_answer_element(q_id, ans_idx)
-    log.info('Processing submission for Keystore ID: ' + keystore_id)
+    log.info('Processing submission for Keystore ID: %s', keystore_id)
 
     for key, value in data_map.items():
         if 'keystore_id' in key:
@@ -62,7 +62,7 @@ def submission_to_cli(ans_set, data_map):
             device_id = get_answer_element(q_id, ans_idx)
             if device_id:
                 device_id_set.append(device_id)
-                log.debug('Device ID: ' + device_id)
+                log.debug('Device ID: %s',  device_id)
         elif 'association' in key:
             q_id = ans_set[value['qID']]
             ans_idx = value['index']
@@ -70,7 +70,7 @@ def submission_to_cli(ans_set, data_map):
             if var_data:
                 cmd_set.append('ztp set association id ' + keystore_id
                                + ' template ' + var_data)
-                log.debug('Association ID: ' + var_data)
+                log.debug('Association ID: %s',  var_data)
             else:
                 # Default answer. Clear old association, if present.
                 cmd_set.append('ztp clear association ' + keystore_id)
@@ -82,8 +82,7 @@ def submission_to_cli(ans_set, data_map):
             if var_data:
                 cmd_set.append('ztp set keystore ' + keystore_id + ' '
                                   + var_name + ' ' + var_data)
-                log.debug('Custom Variable: ' + var_name + '\t Value: '
-                          + var_data)
+                log.debug('Custom Variable: %s\t Value: %s', var_name, var_data)
             else:
                 # Default answer. Clear old variable, if present.
                 cmd_set.append('ztp clear keystore ' + keystore_id + ' '
@@ -91,7 +90,7 @@ def submission_to_cli(ans_set, data_map):
 
     cmd_set.append('ztp set idarray ' + keystore_id + ' '
                    + ' '.join(device_id_set))
-    log.info('Finished parsing values for ' + keystore_id)
+    log.info('Finished parsing values for %s',  keystore_id)
     return cmd_set, keystore_id
 
 def submission_to_csv(ans_set, data_map, headers, csv_data):
@@ -115,7 +114,7 @@ def submission_to_csv(ans_set, data_map, headers, csv_data):
     q_id = ans_set[value['qID']]
     ans_idx = value['index']
     keystore_id = get_answer_element(q_id, ans_idx)
-    log.info('Processing submission for Keystore ID: ' + keystore_id)
+    log.info('Processing submission for Keystore ID: %s',  keystore_id)
 
     for key, value in data_map.items():
         if 'keystore_id' in key:
@@ -129,24 +128,23 @@ def submission_to_csv(ans_set, data_map, headers, csv_data):
             # if var_data:
             #     csv_update.update({var_name: var_data})
             csv_update.update({var_name: var_data})
-            log.debug('Variable Name: ' + var_name + '\t Value: ' +
-                        str(var_data))
+            log.debug('Variable Name: %s\tValue: %d', var_name, var_data)
     # Create partial entry if Import Unknown is enabled
     if keystore_id.upper() not in csv_data and import_unknown:
         csv_data.update({keystore_id.upper(): {'keystore_id': keystore_id}})
-        log.warning('Unknown ID, ' + keystore_id + ', added to external '
-                    'keystore. Incomplete data may cause merge issues.')
+        log.warning('Unknown ID, %s, added to external keystore. Incomplete'
+                    'data may cause merge issues.', keystore_id)
     # Skip item otherwise. Return unchanged data to calling code.
     elif keystore_id.upper() not in csv_data and not import_unknown:
-        log.warning('Received unknown ID, ' + keystore_id + ', and Unknown '
-                    'Import is disabled.  Item skipped / ignored.')
+        log.warning('Received unknown ID, %s, and Unknown Import is disabled.'
+                    ' Item skipped / ignored.', keystore_id)
         return headers, csv_data, False, None
 
     # Apply change list to CSV Data
     headers, csv_data = update_csv_data(csv_data, headers,
                                         keystore_id, csv_update)
 
-    log.info('Finished updating CSV values for ' + keystore_id)
+    log.info('Finished updating CSV values for %s',  keystore_id)
     return headers, csv_data, True, keystore_id
 
 def update_csv_data(csv_data, headers, keystore_id, csv_update):
@@ -173,12 +171,11 @@ def update_csv_data(csv_data, headers, keystore_id, csv_update):
         # Check CSV headers for variable. Add if needed.
         if key not in headers:
             headers.append(key)
-            log.debug('Header for "' + key + '" missing. Adding now.')
+            log.debug('Header for "%s" missing. Adding now.', key)
 
         data.update({key: value})
         csv_data.update({keystore_id.upper(): data})
-        log.debug('Updating "' + key + '" as "' + str(value) + '" for "'
-                  + keystore_id + '".')
+        log.debug('Updating "%s as %d for %s.', key, value, keystore_id)
 
     return headers, csv_data
 
@@ -193,18 +190,18 @@ def get_answer_element(answer_dict, ans_idx):
     """
     full_answer = answer_dict['answer']
     split_answer = full_answer.split(delimiter)
-    log.debug('Full Answer Text from JotForm: ' + full_answer)
+    log.debug('Full Answer Text from JotForm: %s',  full_answer)
 
     if ans_idx + 1 > len(split_answer) and full_answer != null_answer:
-        log.warning('JotForm answer has ' + str(len(split_answer)) +
-                    ' element(s).  Data Map looking for value in element ' +
-                    str(ans_idx + 1) + '. Possible delimiter mismatch or Data '
-                    'Map is wrong.  Re-run setup to alter Data Map.')
+        log.warning('JotForm answer has %d elements. Data map looking for'
+                    ' value in element %d. Possible delimiter mismatch'
+                    ' or Data Map is wrong. Re-run setup to alter Data Map.',
+                    len(split_answer), (ans_idx + 1))
         return None
 
     if full_answer != null_answer:
         answer_element = full_answer.split(delimiter)[int(ans_idx)]
-        log.debug('Parsed "' + answer_element + '" from full answer.')
+        log.debug('Parsed "%s" from full answer.', answer_element)
         return answer_element.strip()
     else:
         log.debug('Null answer found. Nothing returned to calling code.')
@@ -222,7 +219,7 @@ def read_config(config_file):
     if path.exists(config_file):
         with open(config_file, encoding='utf-8') as f:
             config = json.load(f)
-        log.debug('Imported configuration from file, ' + config_file)
+        log.debug('Imported configuration from file, %s',  config_file)
     else:
         log.info('Unable to import configuration. Run setup.')
 
@@ -250,10 +247,10 @@ def read_ext_keystore(ext_keystore_file):
         for row in reader:
             csv_data[row['keystore_id'].upper()] = row
             counter += 1
-        log.info('Read ' + str(counter) + ' line(s) from external keystore.')
+        log.info('Read %d line(s) from external keystore.', counter)
 
         csv_path.close()
-        log.debug('Imported external keystore from file, ' + ext_keystore_file)
+        log.debug('Imported external keystore from file, %s',  ext_keystore_file)
         return headers, csv_data
 
     else:
@@ -280,7 +277,7 @@ def write_ext_keystore(ext_keystore_file, headers, csv_data):
     for value in csv_data.values():
         writer.writerow(value)
         counter += 1
-    log.info('Wrote ' + str(counter) + ' line(s) to external keystore.')
+    log.info('Wrote %d line(s) to external keystore.', counter)
 
     csv_path.close()
 
@@ -321,8 +318,8 @@ def mark_submissions_read(api_key, submission_ids):
         if response.status_code != 200:
             err_set = err_set + '\r\n' + response.text
             log.warning('HTTP response from Jotform not 200. Full response '
-                        'text:\r\n' + response.text + '\r\n\r\nActual status '
-                        'code: ' + str(response.status_code))
+                        'text:\r\n%s\r\n\r\nActual status code: %d',
+                        response.text, response.status_code)
 
     # Error checking in calling code.
     if err_set:
@@ -449,7 +446,7 @@ def get_sample_submission(api_key, form_id):
     response = get_new_submissions(api_key, form_id)
     if (response.status_code == 200
             and response.json()['resultSet']['count'] >= 1):
-        log.debug('Full Jotform Response (JSON):\r\n' +
+        log.debug('Full Jotform Response (JSON):\r\n%s',
                   json.dumps(response.json(), indent=4))
         count = response.json()['resultSet']['count']
         submission_ids = []
@@ -903,9 +900,8 @@ def send_webex_msg(markdown):
     response = requests.request('POST', url, headers=headers, data=payload)
     log.debug('Attempting to send message to Teams Room')
     if response.status_code != 200:
-        log.warning('Send to WebEx Room Failed. Response Text:\r\n'
-                    + response.text + '\r\n\r\nStatus Code: '
-                    + str(response.status_code))
+        log.warning('Send to WebEx Room Failed. Response Text:\r\n%s\r\n\r\n'
+                    'Status Code: %d', response.text, response.status_code)
 
 def get_powerautomate_url(settings):
     """
@@ -944,9 +940,8 @@ def send_powerautomate_msg(url, payload):
     response = requests.request('POST', url, headers=headers, data=payload)
     log.debug('Attempting to send message to MS Power Automate (Azure)')
     if response.status_code not in range (200,299):
-        log.warning('Send to MS Power Automate Failed. Response Text:\r\n'
-                    + response.text + '\r\n\r\nStatus Code: '
-                    + str(response.status_code))
+        log.warning('Send to MS Power Automate Failed. Response Text:\r\n%s'
+                    '\r\n\r\nStatus Code: %d', response.text, response.status_code)
 
 def setup():
     """
@@ -1135,10 +1130,10 @@ def process_data():
         response_count = response.json()['resultSet']['count']
         api_calls_left = response.json()['limit-left']
 
-        log.debug('Full Jotform Response (JSON):\r\n' +
+        log.debug('Full Jotform Response (JSON):\r\n%s',
                   json.dumps(response.json(), indent=4))
-        log.info('New Submissions: ' + str(response_count))
-        log.info('Remaining API Calls: ' + str(api_calls_left))
+        log.info('New Submissions: %d', response_count)
+        log.info('Remaining API Calls: %d', api_calls_left)
 
         if api_calls_left < response_count:
             log.warning('Insufficient remaining API calls to service current '
@@ -1196,7 +1191,7 @@ def process_data():
 
         # Post processing tasks (e.g. restart ZTP)
         log.info('All submissions processed.')
-        log.debug('Submission Set: ' + ' '.join(submission_ids))
+        log.debug('Submission Set: %s', ' '.join(submission_ids))
 
         if restart_ztp:
             if exec_mode == 'csv' and csv_data:
@@ -1211,12 +1206,12 @@ def process_data():
                 sys.exit()
 
             cmd_set.append('ztp service restart')
-            log.debug('Commands to be sent to freeZTP CLI:\r\n' +
+            log.debug('Commands to be sent to freeZTP CLI:\r\n%s',
                       '\r\n'.join(cmd_set))
             if not test_mode:
                 exec_cmds(cmd_set)
-                log.info(str(len(cmd_set)) + ' command(s) successfully sent '
-                         'to freeZTP CLI')
+                log.info('%d command(s) successfully sent to freeZTP CLI.',
+                         len(cmd_set))
                 response = mark_submissions_read(api_key, submission_ids)
                 if not response:
                     log.info('Submissions successfully marked as read.')
@@ -1227,12 +1222,12 @@ def process_data():
             log.info('No data changes! ZTP not restarted.')
 
     elif response.status_code == 200:
-        log.debug('Full Jotform Response (JSON):\r\n' +
+        log.debug('Full Jotform Response (JSON):\r\n%s',
                   json.dumps(response.json(), indent=4))
         log.info('No new submissions!')
     else:
-        log.warning('Jotform Response & Headers (Plain):\r\n' + response.text +
-                  '\r\n\r\n' + response.headers)
+        log.warning('Jotform Response & Headers (Plain):\r\n%s',
+                  response.text + '\r\n\r\n' + response.headers)
 
     log.info('Script Execution Complete')
 
