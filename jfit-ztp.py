@@ -1,4 +1,4 @@
-# pylint: disable=too-many-lines, logging-not-lazy, redefined-outer-name, global-variable-undefined
+# pylint: disable=too-many-lines, redefined-outer-name, global-variable-undefined, invalid-name
 """
 ##                             JFIT-ZTP                              ##
 ##               JotForm Form Import Tool for freeZTP                ##
@@ -19,12 +19,7 @@ import json
 import csv
 import logging
 import argparse
-if int(sys.version[:1]) == 3:
-    from urllib.parse import quote
-    INITMSG = 'Imported URLLib.Parse for Python 3.'
-else:
-    from urllib import quote # pylint: disable=no-name-in-module
-    INITMSG = 'Imported URLLib for Python 2.'
+from urllib.parse import quote
 
 # External modules. Installed by freeztpInstaller.
 import requests # pylint: disable=wrong-import-position
@@ -276,12 +271,7 @@ def write_ext_keystore(ext_keystore_file, headers, csv_data):
     """
     counter = 0
 
-    try:
-        # Python 3 style
-        csv_path = open(ext_keystore_file, 'w', newline='', encoding='utf-8')
-    except:
-        # Python 2 style
-        csv_path = open(ext_keystore_file, 'w', encoding='utf-8')
+    csv_path = open(ext_keystore_file, 'w', newline='', encoding='utf-8')
 
     writer = csv.DictWriter(csv_path, fieldnames=headers)
     writer.writeheader()
@@ -538,7 +528,7 @@ def get_api_key(settings):
                 ]
             )
         result = check_api_key(api_key)
-        if result == True:
+        if result is True:
             validated = True
     return api_key
 
@@ -1157,7 +1147,7 @@ def process_data():
 
         if exec_mode == 'csv':
             headers, csv_data = read_ext_keystore(csv_path)
-            if csv_data == None:
+            if csv_data is None:
                 # Error logged in read_ext_keystore
                 sys.exit()
 
@@ -1275,9 +1265,6 @@ def main():
     else:
         log = config_logging(log_file, file_level)
 
-    # Add events from top of script to log
-    log.debug(INITMSG)
-
     # Author's test harness. Disables sending commands to CLI and disables
     # JotForm submission marking (setup and process_data)
     test_mode = args.test
@@ -1293,4 +1280,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
