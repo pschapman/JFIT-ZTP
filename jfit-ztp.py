@@ -4,7 +4,7 @@
 ##               JotForm Form Import Tool for freeZTP                ##
 
 Author: Paul S. Chapman
-Version: 0.9.4 Beta
+Version: 0.9.9 Beta
 
 Open Caveats / Bugs / Limitations: See README.md
 To Do List: See README.md
@@ -22,8 +22,8 @@ import argparse
 from urllib.parse import quote
 
 # External modules. Installed by freeztpInstaller.
-import requests # pylint: disable=wrong-import-position
-from jinja2 import Template as jinja # pylint: disable=wrong-import-position
+import requests
+from jinja2 import Template as jinja
 
 # External modules. Separate install required.
 try:
@@ -33,7 +33,7 @@ except ModuleNotFoundError:
     sys.exit()
 
 # Private modules
-import constants # pylint: disable=wrong-import-position
+import constants
 
 def submission_to_cli(ans_set, data_map):
     """
