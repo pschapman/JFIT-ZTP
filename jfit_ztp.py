@@ -40,269 +40,273 @@ from jfit_ztp import prompts
 from jfit_ztp import worker
 from jfit_ztp import setup
 
-def submission_to_cli(ans_set, data_map):
-    """
-    Generates ZTP CLI commands from JotForm Data
-        Parameters:
-            ans_set = {'1': {'text': 'Question 1', 'answer': 'myhostname'}}
-        Returns:
-            cmd_set = ['ztp set idarray <name> <serial>', 'another ztp command']
-            keystore_id = '<string>'
-    """
-    cmd_set = []
-    device_id_set = []
+# def submission_to_cli(ans_set, data_map):
+#     """
+#     Generates ZTP CLI commands from JotForm Data
+#         Parameters:
+#             ans_set (dict): Set of answer dictionaries from Jotform
+#                 ex. {'1': {'text': 'Question 1', 'answer': 'myhostname'}}
+#             data_map (dict): Keyed on variable name. Dict with answer mapping.
+#                 ex. {"keystore_id": {"qID": "4", "index": 1}}
+#         Returns:
+#             cmd_set (list): Set of ZTP CLI commands to be issued.
+#                 ex. ['ztp set idarray <name> <serial>', 'another ztp command']
+#             keystore_id (str): ID value, typically device hostname
+#     """
+#     cmd_set = []
+#     device_id_set = []
 
-    value = data_map['keystore_id']
-    q_id = ans_set[value['qID']]
-    ans_idx = value['index']
-    keystore_id = get_answer_element(q_id, ans_idx)
-    log.info('Processing submission for Keystore ID: %s', keystore_id)
+#     value = data_map['keystore_id']
+#     q_id = ans_set[value['qID']]
+#     ans_idx = value['index']
+#     keystore_id = get_answer_element(q_id, ans_idx)
+#     log.info('Processing submission for Keystore ID: %s', keystore_id)
 
-    for key, value in data_map.items():
-        if 'keystore_id' in key:
-            continue
-        elif 'idarray' in key:
-            q_id = ans_set[value['qID']]
-            ans_idx = value['index']
-            device_id = get_answer_element(q_id, ans_idx)
-            if device_id:
-                device_id_set.append(device_id)
-                log.debug('Device ID: %s',  device_id)
-        elif 'association' in key:
-            q_id = ans_set[value['qID']]
-            ans_idx = value['index']
-            var_data = get_answer_element(q_id, ans_idx)
-            if var_data:
-                cmd_set.append('ztp set association id ' + keystore_id
-                               + ' template ' + var_data)
-                log.debug('Association ID: %s',  var_data)
-            else:
-                # Default answer. Clear old association, if present.
-                cmd_set.append('ztp clear association ' + keystore_id)
-        else:
-            q_id = ans_set[value['qID']]
-            ans_idx = value['index']
-            var_data = get_answer_element(q_id, ans_idx)
-            var_name = key
-            if var_data:
-                cmd_set.append('ztp set keystore ' + keystore_id + ' '
-                                  + var_name + ' ' + var_data)
-                log.debug('Custom Variable: %s\t Value: %s', var_name, var_data)
-            else:
-                # Default answer. Clear old variable, if present.
-                cmd_set.append('ztp clear keystore ' + keystore_id + ' '
-                               + var_name)
+#     for key, value in data_map.items():
+#         if 'keystore_id' in key:
+#             continue
+#         elif 'idarray' in key:
+#             q_id = ans_set[value['qID']]
+#             ans_idx = value['index']
+#             device_id = get_answer_element(q_id, ans_idx)
+#             if device_id:
+#                 device_id_set.append(device_id)
+#                 log.debug('Device ID: %s',  device_id)
+#         elif 'association' in key:
+#             q_id = ans_set[value['qID']]
+#             ans_idx = value['index']
+#             var_data = get_answer_element(q_id, ans_idx)
+#             if var_data:
+#                 cmd_set.append('ztp set association id ' + keystore_id
+#                                + ' template ' + var_data)
+#                 log.debug('Association ID: %s',  var_data)
+#             else:
+#                 # Default answer. Clear old association, if present.
+#                 cmd_set.append('ztp clear association ' + keystore_id)
+#         else:
+#             q_id = ans_set[value['qID']]
+#             ans_idx = value['index']
+#             var_data = get_answer_element(q_id, ans_idx)
+#             var_name = key
+#             if var_data:
+#                 cmd_set.append('ztp set keystore ' + keystore_id + ' '
+#                                   + var_name + ' ' + var_data)
+#                 log.debug('Custom Variable: %s\t Value: %s', var_name, var_data)
+#             else:
+#                 # Default answer. Clear old variable, if present.
+#                 cmd_set.append('ztp clear keystore ' + keystore_id + ' '
+#                                + var_name)
 
-    cmd_set.append('ztp set idarray ' + keystore_id + ' '
-                   + ' '.join(device_id_set))
-    log.info('Finished parsing values for %s',  keystore_id)
-    return cmd_set, keystore_id
+#     cmd_set.append('ztp set idarray ' + keystore_id + ' '
+#                    + ' '.join(device_id_set))
+#     log.info('Finished parsing values for %s',  keystore_id)
+#     return cmd_set, keystore_id
 
-def submission_to_csv(ans_set, data_map, headers, csv_data):
-    """
-    Update external keystore fields / rows from JotForm Data
-        Parameters:
-            ans_set = {'1': {'text': 'Question 1', 'answer': 'myhostname'}}
-            data_map = {'varname': {'qID': '1', 'index': 0}}
-            headers = ['keystore_id', 'var_1', 'var_x']
-            csv_data = {'MYHOSTNAME': {'keystore_id': 'myhostname', 'var': 'value'}}
-        Returns:
-            headers <altered list if any headers missing>
-            csv_data <altered entries, same as above format>
-            True/False indicating whether changes were made (ztp restart)
-            keystore_id = '<string>' or None
-    """
-    # Create empty change list
-    csv_update = {}
+# def submission_to_csv(ans_set, data_map, headers, csv_data):
+#     """
+#     Update external keystore fields / rows from JotForm Data
+#         Parameters:
+#             ans_set = {'1': {'text': 'Question 1', 'answer': 'myhostname'}}
+#             data_map = {'varname': {'qID': '1', 'index': 0}}
+#             headers = ['keystore_id', 'var_1', 'var_x']
+#             csv_data = {'MYHOSTNAME': {'keystore_id': 'myhostname', 'var': 'value'}}
+#         Returns:
+#             headers <altered list if any headers missing>
+#             csv_data <altered entries, same as above format>
+#             True/False indicating whether changes were made (ztp restart)
+#             keystore_id = '<string>' or None
+#     """
+#     # Create empty change list
+#     csv_update = {}
 
-    value = data_map['keystore_id']
-    q_id = ans_set[value['qID']]
-    ans_idx = value['index']
-    keystore_id = get_answer_element(q_id, ans_idx)
-    log.info('Processing submission for Keystore ID: %s',  keystore_id)
+#     value = data_map['keystore_id']
+#     q_id = ans_set[value['qID']]
+#     ans_idx = value['index']
+#     keystore_id = get_answer_element(q_id, ans_idx)
+#     log.info('Processing submission for Keystore ID: %s',  keystore_id)
 
-    for key, value in data_map.items():
-        if 'keystore_id' in key:
-            continue
-        else:
-            q_id = ans_set[value['qID']]
-            ans_idx = value['index']
-            # If func returns None, then CSV field will be cleared.
-            var_data = get_answer_element(q_id, ans_idx)
-            var_name = key
-            # if var_data:
-            #     csv_update.update({var_name: var_data})
-            csv_update.update({var_name: var_data})
-            log.debug('Variable Name: %s\tValue: %d', var_name, var_data)
-    # Create partial entry if Import Unknown is enabled
-    if keystore_id.upper() not in csv_data and import_unknown:
-        csv_data.update({keystore_id.upper(): {'keystore_id': keystore_id}})
-        log.warning('Unknown ID, %s, added to external keystore. Incomplete'
-                    'data may cause merge issues.', keystore_id)
-    # Skip item otherwise. Return unchanged data to calling code.
-    elif keystore_id.upper() not in csv_data and not import_unknown:
-        log.warning('Received unknown ID, %s, and Unknown Import is disabled.'
-                    ' Item skipped / ignored.', keystore_id)
-        return headers, csv_data, False, None
+#     for key, value in data_map.items():
+#         if 'keystore_id' in key:
+#             continue
+#         else:
+#             q_id = ans_set[value['qID']]
+#             ans_idx = value['index']
+#             # If func returns None, then CSV field will be cleared.
+#             var_data = get_answer_element(q_id, ans_idx)
+#             var_name = key
+#             # if var_data:
+#             #     csv_update.update({var_name: var_data})
+#             csv_update.update({var_name: var_data})
+#             log.debug('Variable Name: %s\tValue: %d', var_name, var_data)
+#     # Create partial entry if Import Unknown is enabled
+#     if keystore_id.upper() not in csv_data and import_unknown:
+#         csv_data.update({keystore_id.upper(): {'keystore_id': keystore_id}})
+#         log.warning('Unknown ID, %s, added to external keystore. Incomplete'
+#                     'data may cause merge issues.', keystore_id)
+#     # Skip item otherwise. Return unchanged data to calling code.
+#     elif keystore_id.upper() not in csv_data and not import_unknown:
+#         log.warning('Received unknown ID, %s, and Unknown Import is disabled.'
+#                     ' Item skipped / ignored.', keystore_id)
+#         return headers, csv_data, False, None
 
-    # Apply change list to CSV Data
-    headers, csv_data = update_csv_data(csv_data, headers,
-                                        keystore_id, csv_update)
+#     # Apply change list to CSV Data
+#     headers, csv_data = update_csv_data(csv_data, headers,
+#                                         keystore_id, csv_update)
 
-    log.info('Finished updating CSV values for %s',  keystore_id)
-    return headers, csv_data, True, keystore_id
+#     log.info('Finished updating CSV values for %s',  keystore_id)
+#     return headers, csv_data, True, keystore_id
 
-def update_csv_data(csv_data, headers, keystore_id, csv_update):
-    """
-    Update external keystore fields / rows from JotForm Data
-        Parameters:
-            csv_data = {'MYHOSTNAME': {'keystore_id': 'myhostname', 'var': 'value'}}
-            headers = ['keystore_id', 'var_1', 'var_x']
-            keystore_id = 'myhostname'
-            csv_update = {'var_1': 'newdata', 'var_n': 'newdata'}
-        Returns:
-            headers <altered list if any headers missing>
-            csv_data <altered entries, same as above format>
-    """
-    data = csv_data[keystore_id.upper()]
+# def update_csv_data(csv_data, headers, keystore_id, csv_update):
+#     """
+#     Update external keystore fields / rows from JotForm Data
+#         Parameters:
+#             csv_data = {'MYHOSTNAME': {'keystore_id': 'myhostname', 'var': 'value'}}
+#             headers = ['keystore_id', 'var_1', 'var_x']
+#             keystore_id = 'myhostname'
+#             csv_update = {'var_1': 'newdata', 'var_n': 'newdata'}
+#         Returns:
+#             headers <altered list if any headers missing>
+#             csv_data <altered entries, same as above format>
+#     """
+#     data = csv_data[keystore_id.upper()]
 
-    for key, value in csv_update.items():
-        # On rare chance that source file is empty, create first header.
-        # Only occurs if Import Unknown is enabled.
-        if not headers:
-            headers = ['keystore_id']
-            log.warning('Blank external keystore found. Creating keystore_id '
-                        'header.')
-        # Check CSV headers for variable. Add if needed.
-        if key not in headers:
-            headers.append(key)
-            log.debug('Header for "%s" missing. Adding now.', key)
+#     for key, value in csv_update.items():
+#         # On rare chance that source file is empty, create first header.
+#         # Only occurs if Import Unknown is enabled.
+#         if not headers:
+#             headers = ['keystore_id']
+#             log.warning('Blank external keystore found. Creating keystore_id '
+#                         'header.')
+#         # Check CSV headers for variable. Add if needed.
+#         if key not in headers:
+#             headers.append(key)
+#             log.debug('Header for "%s" missing. Adding now.', key)
 
-        data.update({key: value})
-        csv_data.update({keystore_id.upper(): data})
-        log.debug('Updating "%s as %d for %s.', key, value, keystore_id)
+#         data.update({key: value})
+#         csv_data.update({keystore_id.upper(): data})
+#         log.debug('Updating "%s as %d for %s.', key, value, keystore_id)
 
-    return headers, csv_data
+#     return headers, csv_data
 
-def get_answer_element(answer_dict, ans_idx):
-    """
-    Extract answer string or partial answer string if delimiter present
-        Parameters:
-            ans_dict = {'text': 'Question 2', 'answer': 'myserial : mymodel'}
-            ans_idx = 1
-        Returns: (watch delimiter)
-            'mymodel'
-    """
-    full_answer = answer_dict['answer']
-    split_answer = full_answer.split(delimiter)
-    log.debug('Full Answer Text from JotForm: %s',  full_answer)
+# def get_answer_element(answer_dict, ans_idx):
+#     """
+#     Extract answer string or partial answer string if delimiter present
+#         Parameters:
+#             ans_dict = {'text': 'Question 2', 'answer': 'myserial : mymodel'}
+#             ans_idx = 1
+#         Returns: (watch delimiter)
+#             'mymodel'
+#     """
+#     full_answer = answer_dict['answer']
+#     split_answer = full_answer.split(delimiter)
+#     log.debug('Full Answer Text from JotForm: %s',  full_answer)
 
-    if ans_idx + 1 > len(split_answer) and full_answer != null_answer:
-        log.warning('JotForm answer has %d elements. Data map looking for'
-                    ' value in element %d. Possible delimiter mismatch'
-                    ' or Data Map is wrong. Re-run setup to alter Data Map.',
-                    len(split_answer), (ans_idx + 1))
-        return None
+#     if ans_idx + 1 > len(split_answer) and full_answer != null_answer:
+#         log.warning('JotForm answer has %d elements. Data map looking for'
+#                     ' value in element %d. Possible delimiter mismatch'
+#                     ' or Data Map is wrong. Re-run setup to alter Data Map.',
+#                     len(split_answer), (ans_idx + 1))
+#         return None
 
-    if full_answer != null_answer:
-        answer_element = full_answer.split(delimiter)[int(ans_idx)]
-        log.debug('Parsed "%s" from full answer.', answer_element)
-        return answer_element.strip()
-    else:
-        log.debug('Null answer found. Nothing returned to calling code.')
-        return None
+#     if full_answer != null_answer:
+#         answer_element = full_answer.split(delimiter)[int(ans_idx)]
+#         log.debug('Parsed "%s" from full answer.', answer_element)
+#         return answer_element.strip()
+#     else:
+#         log.debug('Null answer found. Nothing returned to calling code.')
+#         return None
 
-def read_config(config_file):
-    """
-    Update external keystore fields / rows from JotForm Data
-        Parameters:
-            config_file = '/path/to/jfit-ztp-folder/datamap.json'
-        Returns:
-            config = {'api_key': '<key>', '<vars>': '<values>', 'data_map': {<map>}}
-    """
-    config = None
-    if path.exists(config_file):
-        with open(config_file, encoding='utf-8') as f:
-            config = json.load(f)
-        log.debug('Imported configuration from file, %s',  config_file)
-    else:
-        log.info('Unable to import configuration. Run setup.')
+# def read_config(config_file):
+#     """
+#     Update external keystore fields / rows from JotForm Data
+#         Parameters:
+#             config_file = '/path/to/jfit-ztp-folder/datamap.json'
+#         Returns:
+#             config = {'api_key': '<key>', '<vars>': '<values>', 'data_map': {<map>}}
+#     """
+#     config = None
+#     if path.exists(config_file):
+#         with open(config_file, encoding='utf-8') as f:
+#             config = json.load(f)
+#         log.debug('Imported configuration from file, %s',  config_file)
+#     else:
+#         log.info('Unable to import configuration. Run setup.')
 
-    if config:
-        return config
-    else:
-        return None
+#     if config:
+#         return config
+#     else:
+#         return None
 
-def read_ext_keystore(ext_keystore_file):
-    """
-    Update external keystore fields / rows from JotForm Data
-        Parameters:
-            ext_keystore_file = '/path/to/ztp-folder/keystore.csv'
-        Returns:
-            headers = ['keystore_id', 'var_1', 'var_x']
-            csv_data = {'MYHOSTNAME': {'keystore_id': 'myhostname', 'var': 'value'}}
-    """
-    if path.exists(ext_keystore_file):
-        csv_path = open(ext_keystore_file, 'r', encoding='utf-8')
-        reader = csv.DictReader(csv_path)
-        headers = reader.fieldnames
-        csv_data = {}
-        counter = 0
-        # Create dictionary wrapper keyed on keystore_id.
-        for row in reader:
-            csv_data[row['keystore_id'].upper()] = row
-            counter += 1
-        log.info('Read %d line(s) from external keystore.', counter)
+# def read_ext_keystore(ext_keystore_file):
+#     """
+#     Update external keystore fields / rows from JotForm Data
+#         Parameters:
+#             ext_keystore_file = '/path/to/ztp-folder/keystore.csv'
+#         Returns:
+#             headers = ['keystore_id', 'var_1', 'var_x']
+#             csv_data = {'MYHOSTNAME': {'keystore_id': 'myhostname', 'var': 'value'}}
+#     """
+#     if path.exists(ext_keystore_file):
+#         csv_path = open(ext_keystore_file, 'r', encoding='utf-8')
+#         reader = csv.DictReader(csv_path)
+#         headers = reader.fieldnames
+#         csv_data = {}
+#         counter = 0
+#         # Create dictionary wrapper keyed on keystore_id.
+#         for row in reader:
+#             csv_data[row['keystore_id'].upper()] = row
+#             counter += 1
+#         log.info('Read %d line(s) from external keystore.', counter)
 
-        csv_path.close()
-        log.debug('Imported external keystore from file, %s',  ext_keystore_file)
-        return headers, csv_data
+#         csv_path.close()
+#         log.debug('Imported external keystore from file, %s',  ext_keystore_file)
+#         return headers, csv_data
 
-    else:
-        log.warning('Referenced keystore is missing and execution mode is '
-                    'CSV. Create keystore file or re-run setup.')
-        return None, None
+#     else:
+#         log.warning('Referenced keystore is missing and execution mode is '
+#                     'CSV. Create keystore file or re-run setup.')
+#         return None, None
 
-def write_ext_keystore(ext_keystore_file, headers, csv_data):
-    """
-    Update external keystore fields / rows from JotForm Data
-        Parameters:
-            ext_keystore_file = '/path/to/ztp-folder/keystore.csv'
-            headers = ['keystore_id', 'var_1', 'var_x']
-            csv_data = {'MYHOSTNAME': {'keystore_id': 'myhostname', 'var': 'value'}}
-    """
-    counter = 0
+# def write_ext_keystore(ext_keystore_file, headers, csv_data):
+#     """
+#     Update external keystore fields / rows from JotForm Data
+#         Parameters:
+#             ext_keystore_file = '/path/to/ztp-folder/keystore.csv'
+#             headers = ['keystore_id', 'var_1', 'var_x']
+#             csv_data = {'MYHOSTNAME': {'keystore_id': 'myhostname', 'var': 'value'}}
+#     """
+#     counter = 0
 
-    csv_path = open(ext_keystore_file, 'w', newline='', encoding='utf-8')
+#     csv_path = open(ext_keystore_file, 'w', newline='', encoding='utf-8')
 
-    writer = csv.DictWriter(csv_path, fieldnames=headers)
-    writer.writeheader()
+#     writer = csv.DictWriter(csv_path, fieldnames=headers)
+#     writer.writeheader()
 
-    # Strip off dictionary wrapper and write data
-    for value in csv_data.values():
-        writer.writerow(value)
-        counter += 1
-    log.info('Wrote %d line(s) to external keystore.', counter)
+#     # Strip off dictionary wrapper and write data
+#     for value in csv_data.values():
+#         writer.writerow(value)
+#         counter += 1
+#     log.info('Wrote %d line(s) to external keystore.', counter)
 
-    csv_path.close()
+#     csv_path.close()
 
-def get_new_submissions(api_key, form_id):
-    """
-    Query JotForm for new Submissions
-        Parameters:
-            api_key = '<hex string>'
-            form_id = '<numeric string>'
-        Returns:
-            <Requests Response Object with all properties>
-    """
-    base_url = 'https://api.jotform.com/form/'
-    api_filter = '?filter=' + quote('{"status":"ACTIVE","new":"1"}')
-    url = (base_url + form_id + '/submissions' + api_filter)
-    headers = {'APIKEY': api_key}
-    payload = None
-    response = requests.request('GET', url, headers=headers, data=payload)
-    # Error checking in calling code.
-    return response
+# def get_new_submissions(api_key, form_id):
+#     """
+#     Query JotForm for new Submissions
+#         Parameters:
+#             api_key = '<hex string>'
+#             form_id = '<numeric string>'
+#         Returns:
+#             <Requests Response Object with all properties>
+#     """
+#     base_url = 'https://api.jotform.com/form/'
+#     api_filter = '?filter=' + quote('{"status":"ACTIVE","new":"1"}')
+#     url = (base_url + form_id + '/submissions' + api_filter)
+#     headers = {'APIKEY': api_key}
+#     payload = None
+#     response = requests.request('GET', url, headers=headers, data=payload)
+#     # Error checking in calling code.
+#     return response
 
 def mark_submissions_read(api_key, submission_ids):
     """
@@ -332,23 +336,23 @@ def mark_submissions_read(api_key, submission_ids):
     else:
         return None
 
-def exec_cmds(cmd_set):
-    """
-    Send freeZTP commands to system CLI
-        Parameters:
-            cmd_set = ['ztp set idarray <name> <serial>', 'another ztp command']
-        Returns:
-            True / False indicating success / failure
-    """
-    for command in cmd_set:
-        process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
-        output = process.communicate()[0]
+# def exec_cmds(cmd_set):
+#     """
+#     Send freeZTP commands to system CLI
+#         Parameters:
+#             cmd_set = ['ztp set idarray <name> <serial>', 'another ztp command']
+#         Returns:
+#             True / False indicating success / failure
+#     """
+#     for command in cmd_set:
+#         process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
+#         output = process.communicate()[0]
 
-    # Last command restarts ZTP. Verify status. Error check in calling code.
-    if '(running)' in output:
-        return True
-    else:
-        return False
+#     # Last command restarts ZTP. Verify status. Error check in calling code.
+#     if '(running)' in output:
+#         return True
+#     else:
+#         return False
 
 def check_api_key(api_key):
     """
@@ -888,25 +892,25 @@ def get_room_id(bot_token, settings):
 
     return room_id
 
-def send_webex_msg(markdown):
-    """
-    Query JotForm for new Submissions
-        Parameters:
-            markdown = '<message text in markdown format>'
-            bot_token = '<string>'
-            room_id = '<hex string>'
-    """
-    url = 'https://webexapis.com/v1/messages'
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + bot_token
-        }
-    payload = json.dumps({'roomId': room_id, 'markdown': markdown})
-    response = requests.request('POST', url, headers=headers, data=payload)
-    log.debug('Attempting to send message to Teams Room')
-    if response.status_code != 200:
-        log.warning('Send to WebEx Room Failed. Response Text:\r\n%s\r\n\r\n'
-                    'Status Code: %d', response.text, response.status_code)
+# def send_webex_msg(markdown):
+#     """
+#     Query JotForm for new Submissions
+#         Parameters:
+#             markdown = '<message text in markdown format>'
+#             bot_token = '<string>'
+#             room_id = '<hex string>'
+#     """
+#     url = 'https://webexapis.com/v1/messages'
+#     headers = {
+#         'Content-Type': 'application/json',
+#         'Authorization': 'Bearer ' + bot_token
+#         }
+#     payload = json.dumps({'roomId': room_id, 'markdown': markdown})
+#     response = requests.request('POST', url, headers=headers, data=payload)
+#     log.debug('Attempting to send message to Teams Room')
+#     if response.status_code != 200:
+#         log.warning('Send to WebEx Room Failed. Response Text:\r\n%s\r\n\r\n'
+#                     'Status Code: %d', response.text, response.status_code)
 
 def get_powerautomate_url(settings):
     """
@@ -933,20 +937,20 @@ def get_powerautomate_url(settings):
         )
     return azure_url
 
-def send_powerautomate_msg(url, payload):
-    """
-    Query JotForm for new Submissions
-        Parameters:
-            url = '<azure webhook url>'
-            payload = '<JSON data>'
-        Returns:
-    """
-    headers = {'Content-Type': 'application/json'}
-    response = requests.request('POST', url, headers=headers, data=payload)
-    log.debug('Attempting to send message to MS Power Automate (Azure)')
-    if response.status_code not in range (200,299):
-        log.warning('Send to MS Power Automate Failed. Response Text:\r\n%s'
-                    '\r\n\r\nStatus Code: %d', response.text, response.status_code)
+# def send_powerautomate_msg(url, payload):
+#     """
+#     Query JotForm for new Submissions
+#         Parameters:
+#             url = '<azure webhook url>'
+#             payload = '<JSON data>'
+#         Returns:
+#     """
+#     headers = {'Content-Type': 'application/json'}
+#     response = requests.request('POST', url, headers=headers, data=payload)
+#     log.debug('Attempting to send message to MS Power Automate (Azure)')
+#     if response.status_code not in range (200,299):
+#         log.warning('Send to MS Power Automate Failed. Response Text:\r\n%s'
+#                     '\r\n\r\nStatus Code: %d', response.text, response.status_code)
 
 # def setup():
 #     """
@@ -1268,6 +1272,6 @@ if __name__ == '__main__':
     if setup_mode:
         setup.setup(CFG_NAME)
     else:
-        worker.process_data(CFG_NAME)
+        worker.process_data(CFG_NAME, test_mode)
 
     main()

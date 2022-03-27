@@ -13,23 +13,23 @@ def setup(config_file):
     """
     Initial setup wizard
     """
-    settings = shared.read_config(config_file)
+    cfg = shared.read_config(config_file)
     # global delimiter, null_answer, bot_token, room_id
 
     # Settings not part of key map
-    api_key = get_api_key(settings)
-    form_id = get_form_id(api_key, settings)
-    delimiter = get_delimiter(settings)
-    exec_mode, csv_path, import_unknown = get_exec_mode(settings)
-    null_answer = get_null_answer(settings)
+    api_key = get_api_key(cfg)
+    form_id = get_form_id(api_key, cfg)
+    delimiter = get_delimiter(cfg)
+    exec_mode, csv_path, import_unknown = get_exec_mode(cfg)
+    null_answer = get_null_answer(cfg)
 
     # Enable WebEx Teams notifications
     print(prompts.INFO_WEBEX_TEAMS_INTEGRATION)
     prompt = 'Enable notifications to WebEx Teams? (y/N) > '
     response = pyip.inputYesNo(prompt=prompt, blank=True)
     if response == 'yes':
-        bot_token = get_bot_token(settings)
-        room_id = get_room_id(bot_token, settings)
+        bot_token = get_bot_token(cfg)
+        room_id = get_room_id(bot_token, cfg)
     else:
         bot_token = None
         room_id = None
@@ -39,7 +39,7 @@ def setup(config_file):
     prompt = 'Enable notifications to Microsoft Power Automate? (y/N) > '
     response = pyip.inputYesNo(prompt=prompt, blank=True)
     if response == 'yes':
-        azure_url = get_powerautomate_url(settings)
+        azure_url = get_powerautomate_url(cfg)
     else:
         azure_url = None
 
@@ -49,7 +49,7 @@ def setup(config_file):
     ans_menu = dict_to_q_menu(ans_set)
 
     # Get old data map settings to offer reusable config
-    data_map = settings['data_map'] if settings else {}
+    data_map = cfg['data_map'] if cfg else {}
 
     # Begin key map Q&A
     print(prompts.INFO_KEYSTORE_ID)

@@ -5,9 +5,17 @@ from os import path
 import logging
 import argparse
 import json
+from urllib.parse import quote
+import socket
+
+# External modules. Installed by freeztpInstaller.
+import requests
 
 # Begin logging inside module, parent initializes configuration
 log = logging.getLogger(__name__)
+
+hostfqdn = (socket.getfqdn().lower())
+
 
 def parse_args():
     """
@@ -58,3 +66,84 @@ def read_config(config_file):
         log.info('Unable to import configuration. Run setup.')
 
     return config
+
+def get_new_submissions(api_key, form_id):
+    """
+    Query JotForm for new Submissions
+        Parameters:
+            api_key (hex): Jotform API Key value
+            form_id (int): Jotform Form ID value
+        Returns:
+            response (str): Requests Response object with all properties.
+    """
+    base_url = 'https://api.jotform.com/form/'
+    api_filter = '?filter=' + quote('{"status":"ACTIVE","new":"1"}')
+    url = (base_url + form_id + '/submissions' + api_filter)
+    headers = {'APIKEY': api_key}
+    payload = None
+    response = requests.request('GET', url, headers=headers, data=payload)
+    # Error checking in calling code.
+    return response
+
+def send_webex_msg(bot_token, room_id, markdown):
+    """
+    Query JotForm for new Submissions
+        Parameters:
+            markdown = '<message text in markdown format>'
+            bot_token = '<string>'
+            room_id = '<hex string>'
+    """
+    url = 'https://webexapis.com/v1/messages'
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + bot_token
+        }
+    payload = json.dumps({'roomId': room_id, 'markdown': markdown})
+    response = requests.request('POST', url, headers=headers, data=payload)
+    log.debug('Attempting to send message to Teams Room')
+    if response.status_code != 200:
+        log.warning('Send to WebEx Room Failed. Response Text:\r\n%s\r\n\r\n'
+                    'Status Code: %d', response.text, response.status_code)
+
+def send_powerautomate_msg(url, payload):
+    """
+    Query JotForm for new Submissions
+        Parameters:
+            url = '<azure webhook url>'
+            payload = '<JSON data>'
+        Returns:
+    """
+    headers = {'Content-Type': 'application/json'}
+    response = requests.request('POST', url, headers=headers, data=payload)
+    log.debug('Attempting to send message to MS Power Automate (Azure)')
+    if response.status_code not in range (200,299):
+        log.warning('Send to MS Power Automate Failed. Response Text:\r\n%s'
+                    '\r\n\r\nStatus Code: %d', response.text, response.status_code)
+
+def mark_submissions_read(api_key, submission_ids):
+    """
+    Query JotForm for new Submissions
+        Parameters:
+            api_key (hex): Jotform API Key value
+            submission_ids (list): Set of Submission IDs to mark 'read'
+                ex. ['<numeric string>', '<numeric string>']
+        Returns:
+            err_state (bool): True means 1 or more updates failed.
+    """
+    err_set = None
+    err_state = False
+    base_url = 'https://api.jotform.com/submission/'
+    headers = {'APIKEY': api_key}
+    payload = {'submission[new]': '0'}
+    for item in submission_ids:
+        url = (base_url + item)
+        response = requests.request('POST', url, headers=headers, data=payload)
+        if response.status_code != 200:
+            err_set += '\r\n' + response.text
+            err_state = True
+            log.warning('HTTP response from Jotform not 200. Full response '
+                        'text:\r\n%s\r\n\r\nActual status code: %d',
+                        response.text, response.status_code)
+
+    # Error checking in calling code.
+    return err_state
