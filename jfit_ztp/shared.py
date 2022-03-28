@@ -63,7 +63,7 @@ def read_config(config_file):
             config = json.load(cfg_file)
         log.debug('Imported configuration from file, %s',  config_file)
     else:
-        log.info('Unable to import configuration. Run setup.')
+        log.info('Unable to import configuration.')
 
     return config
 
@@ -147,3 +147,39 @@ def mark_submissions_read(api_key, submission_ids):
 
     # Error checking in calling code.
     return err_state
+
+def get_answer_element(config, answer_dict, ans_idx):
+    """
+    Extract answer string. (Or answer substring, if delimiter present.)
+        Parameters:
+            ans_dict (dict): Jotform response data for a question
+                ex. {'text': 'Question 2', 'answer': 'myserial : mymodel'}
+            ans_idx (int): Index of sub-answer. 1 for first/only, or n for
+            specific position with delimited string.
+        Returns:
+            sub_answer (str): Answer string or substring.
+    """
+    null_answer = config['null_answer']
+    delimiter = config['delimiter']
+
+    full_answer = answer_dict['answer']
+    split_answer = full_answer.split(delimiter)
+    log.debug('Full Answer Text from JotForm: %s',  full_answer)
+
+    if ans_idx + 1 > len(split_answer) and full_answer != null_answer:
+        log.warning('JotForm answer has %d elements. Data map looking for'
+                    ' value in element %d. Possible delimiter mismatch'
+                    ' or Data Map is wrong. Re-run setup to alter Data Map.',
+                    len(split_answer), (ans_idx + 1))
+        return None
+
+    sub_answer = None
+
+    if full_answer != null_answer:
+        answer_element = full_answer.split(delimiter)[int(ans_idx)]
+        log.debug('Parsed "%s" from full answer.', answer_element)
+        sub_answer = answer_element.strip()
+    else:
+        log.debug('Null answer found. Nothing returned to calling code.')
+
+    return sub_answer

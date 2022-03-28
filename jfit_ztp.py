@@ -36,7 +36,7 @@ except ModuleNotFoundError:
 # Private modules
 from jfit_ztp import logger
 from jfit_ztp import shared
-from jfit_ztp import prompts
+from jfit_ztp import help_text
 from jfit_ztp import worker
 from jfit_ztp import setup
 
@@ -354,55 +354,55 @@ def mark_submissions_read(api_key, submission_ids):
 #     else:
 #         return False
 
-def check_api_key(api_key):
-    """
-    Send test query to JotForm. Calling code determines pass/fail actions.
-        Parameters:
-            api_key = '<hex string>'
-        Returns:
-            True / None indicating success / failure
-    """
-    url = 'https://api.jotform.com/user/usage'
-    headers = {'APIKEY': api_key}
-    payload = None
-    try:
-        int(api_key, 16)
-    except ValueError:
-        print('Answer not Hex value.')
-        return None
-    response = requests.request('GET', url, headers=headers, data=payload)
-    if response.status_code == 200:
-        return True
-    else:
-        print('Could not log in with provided key.')
-        return None
+# def check_api_key(api_key):
+#     """
+#     Send test query to JotForm. Calling code determines pass/fail actions.
+#         Parameters:
+#             api_key = '<hex string>'
+#         Returns:
+#             True / None indicating success / failure
+#     """
+#     url = 'https://api.jotform.com/user/usage'
+#     headers = {'APIKEY': api_key}
+#     payload = None
+#     try:
+#         int(api_key, 16)
+#     except ValueError:
+#         print('Answer not Hex value.')
+#         return None
+#     response = requests.request('GET', url, headers=headers, data=payload)
+#     if response.status_code == 200:
+#         return True
+#     else:
+#         print('Could not log in with provided key.')
+#         return None
 
-def query_available_forms(api_key):
-    """
-    Request list of "enabled" forms available to API Key
-        Parameters:
-            api_key = '<hex string>'
-        Returns:
-            form_set = {'My Form Title': '<num str>', 'My Form Title2': '<num str>'}
-    """
-    base_url = 'https://api.jotform.com/user/forms'
-    api_filter = '?limit=1000&filter=' + quote('{"status":"ENABLED"}')
-    url = (base_url + api_filter)
-    headers = {'APIKEY': api_key}
-    payload = None
-    response = requests.request('GET', url, headers=headers, data=payload)
-    form_set = {}
-    if (response.status_code == 200
-            and response.json()['resultSet']['count'] >= 1):
-        for form in response.json()['content']:
-            # form_name = form['title'].encode('ascii')
-            # form_set.update({form_name.strip(): form['id']})
-            form_set.update({form['title']: form['id']})
+# def query_available_forms(api_key):
+#     """
+#     Request list of "enabled" forms available to API Key
+#         Parameters:
+#             api_key = '<hex string>'
+#         Returns:
+#             form_set = {'My Form Title': '<num str>', 'My Form Title2': '<num str>'}
+#     """
+#     base_url = 'https://api.jotform.com/user/forms'
+#     api_filter = '?limit=1000&filter=' + quote('{"status":"ENABLED"}')
+#     url = (base_url + api_filter)
+#     headers = {'APIKEY': api_key}
+#     payload = None
+#     response = requests.request('GET', url, headers=headers, data=payload)
+#     form_set = {}
+#     if (response.status_code == 200
+#             and response.json()['resultSet']['count'] >= 1):
+#         for form in response.json()['content']:
+#             # form_name = form['title'].encode('ascii')
+#             # form_set.update({form_name.strip(): form['id']})
+#             form_set.update({form['title']: form['id']})
 
-    if len(form_set) > 0:
-        return form_set
-    else:
-        return None
+#     if len(form_set) > 0:
+#         return form_set
+#     else:
+#         return None
 
 def get_csv_path():
     """
@@ -430,7 +430,7 @@ def get_import_unknown():
         Returns:
             True / False
     """
-    print(prompts.INFO_IMPORT_UNKNOWN)
+    print(help_text.INFO_IMPORT_UNKNOWN)
     prompt = 'Enable Unknown ID Import? (y/N) > '
     import_unknown = pyip.inputYesNo(prompt=prompt, blank=True)
     if import_unknown == 'yes':
@@ -448,7 +448,7 @@ def get_sample_submission(api_key, form_id):
         Returns:
             submission = {'id': '<num str>, '<vars>': '<vals>', 'answers': {<dict>}}
     """
-    print(prompts.INFO_SAMPLE_SUBMISSION)
+    print(help_text.INFO_SAMPLE_SUBMISSION)
     prompt = 'Hit <enter> after Form is submitted... > '
     pyip.inputStr(prompt=prompt, blank=True)
 
@@ -508,86 +508,86 @@ def dict_to_q_menu(ans_set):
 
     return ans_menu
 
-def get_api_key(settings):
-    """
-    Ask user for JotForm API Key. settings passed to offer option to use
-    existing configuration.
-        Parameters:
-            settings = {'api_key': '<key>', '<vars>': '<vals>', 'data_map': {<map>}}
-        Returns:
-            api_key = '<hex string>'
-    """
-    print(prompts.INFO_GET_API_KEY)
+# def get_api_key(settings):
+#     """
+#     Ask user for JotForm API Key. settings passed to offer option to use
+#     existing configuration.
+#         Parameters:
+#             settings = {'api_key': '<key>', '<vars>': '<vals>', 'data_map': {<map>}}
+#         Returns:
+#             api_key = '<hex string>'
+#     """
+#     print(help_text.INFO_GET_API_KEY)
 
-    old_vals = get_old_vals(settings, ['api_key'])
-    if old_vals:
-        return old_vals[0]
+#     old_vals = get_old_vals(settings, ['api_key'])
+#     if old_vals:
+#         return old_vals[0]
 
-    validated = False
-    prompt = 'What is your API key? > '
-    while not validated:
-        api_key = pyip.inputStr(
-            prompt=prompt,
-            blockRegexes=[
-                ('.{41,}', 'Answer too long.'),
-                (r'\ ', 'Spaces not allowed.')
-                ]
-            )
-        result = check_api_key(api_key)
-        if result is True:
-            validated = True
-    return api_key
+#     validated = False
+#     prompt = 'What is your API key? > '
+#     while not validated:
+#         api_key = pyip.inputStr(
+#             prompt=prompt,
+#             blockRegexes=[
+#                 ('.{41,}', 'Answer too long.'),
+#                 (r'\ ', 'Spaces not allowed.')
+#                 ]
+#             )
+#         result = check_api_key(api_key)
+#         if result is True:
+#             validated = True
+#     return api_key
 
-def get_form_id(api_key, settings):
-    """
-    Ask user for JotForm Form ID. settings passed to offer option to use
-    existing configuration.
-        Parameters:
-            settings = {'api_key': '<key>', '<vars>': '<vals>', 'data_map': {<map>}}
-        Returns:
-            form_id = '<num str>'
-    """
-    print(prompts.INFO_GET_FORM_ID)
+# def get_form_id(api_key, settings):
+#     """
+#     Ask user for JotForm Form ID. settings passed to offer option to use
+#     existing configuration.
+#         Parameters:
+#             settings = {'api_key': '<key>', '<vars>': '<vals>', 'data_map': {<map>}}
+#         Returns:
+#             form_id = '<num str>'
+#     """
+#     print(help_text.INFO_GET_FORM_ID)
 
-    old_vals = get_old_vals(settings, ['form_id'])
-    if old_vals:
-        return old_vals[0]
+#     old_vals = get_old_vals(settings, ['form_id'])
+#     if old_vals:
+#         return old_vals[0]
 
-    data = query_available_forms(api_key)
-    if not data:
-        print(prompts.FAIL_NO_FORMS_FOUND)
-        sys.exit()
+#     data = query_available_forms(api_key)
+#     if not data:
+#         print(help_text.FAIL_NO_FORMS_FOUND)
+#         sys.exit()
 
-    # NOTE: Likely issue if only one form exists. See get_room_id.
-    prompt = 'Which Form is being used for this deployment? > \r\n'
-    form_name = pyip.inputMenu(list(data.keys()), prompt=prompt, numbered=True)
-    return data[form_name]
+#     # NOTE: Likely issue if only one form exists. See get_room_id.
+#     prompt = 'Which Form is being used for this deployment? > \r\n'
+#     form_name = pyip.inputMenu(list(data.keys()), prompt=prompt, numbered=True)
+#     return data[form_name]
 
-def get_delimiter(settings):
-    """
-    Ask user for delimiter value. settings passed to offer option to use
-    existing configuration.
-        Parameters:
-            settings = {'api_key': '<key>', '<vars>': '<vals>', 'data_map': {<map>}}
-        Returns:
-            delimiter = '<single character>'
-    """
-    print(prompts.INFO_GET_DELIMITER)
+# def get_delimiter(settings):
+#     """
+#     Ask user for delimiter value. settings passed to offer option to use
+#     existing configuration.
+#         Parameters:
+#             settings = {'api_key': '<key>', '<vars>': '<vals>', 'data_map': {<map>}}
+#         Returns:
+#             delimiter = '<single character>'
+#     """
+#     print(help_text.INFO_GET_DELIMITER)
 
-    old_vals = get_old_vals(settings, ['delimiter'])
-    if old_vals:
-        return old_vals[0]
+#     old_vals = get_old_vals(settings, ['delimiter'])
+#     if old_vals:
+#         return old_vals[0]
 
-    validated = False
-    prompt = 'What is the delimiter? (enter for default [:]) > '
-    while not validated:
-        delimiter = pyip.inputStr(prompt=prompt, blank=True)
-        delimiter = ':' if not delimiter else delimiter
-        if len(delimiter) > 1:
-            print('Delimiter more than 1 character.')
-        else:
-            validated = True
-    return delimiter
+#     validated = False
+#     prompt = 'What is the delimiter? (enter for default [:]) > '
+#     while not validated:
+#         delimiter = pyip.inputStr(prompt=prompt, blank=True)
+#         delimiter = ':' if not delimiter else delimiter
+#         if len(delimiter) > 1:
+#             print('Delimiter more than 1 character.')
+#         else:
+#             validated = True
+#     return delimiter
 
 def get_exec_mode(settings):
     """
@@ -598,7 +598,7 @@ def get_exec_mode(settings):
         Returns:
             exec_mode = '<csv or cli>'
     """
-    print(prompts.INFO_GET_EXEC_MODE)
+    print(help_text.INFO_GET_EXEC_MODE)
 
     old_vals = get_old_vals(settings, ['exec_mode',
          'csv_path', 'import_unknown'])
@@ -628,7 +628,7 @@ def get_null_answer(settings):
         Returns:
             null_answer = '<string>'
     """
-    print(prompts.INFO_GET_NULL_ANSWER)
+    print(help_text.INFO_GET_NULL_ANSWER)
 
     old_vals = get_old_vals(settings, ['null_answer'])
     if old_vals:
@@ -804,7 +804,7 @@ def get_bot_token(settings):
         Returns:
             bot_token = '<string>'
     """
-    print(prompts.INFO_GET_BOT_TOKEN)
+    print(help_text.INFO_GET_BOT_TOKEN)
 
     old_vals = get_old_vals(settings, ['bot_token'])
     if old_vals:
@@ -863,7 +863,7 @@ def get_room_id(bot_token, settings):
         Returns:
             room_id = '<string>'
     """
-    print(prompts.INFO_GET_ROOM_ID)
+    print(help_text.INFO_GET_ROOM_ID)
 
     old_vals = get_old_vals(settings, ['room_id'])
     if old_vals:
@@ -871,7 +871,7 @@ def get_room_id(bot_token, settings):
 
     room_set = query_available_rooms(bot_token)
     if not room_set:
-        print(prompts.FAIL_NO_ROOMS_FOUND)
+        print(help_text.FAIL_NO_ROOMS_FOUND)
         sys.exit()
 
     if len(room_set) == 1:
@@ -921,7 +921,7 @@ def get_powerautomate_url(settings):
         Returns:
             azure_url = '<url string>'
     """
-    print(prompts.INFO_GET_POWER_AUTOMATE_URL)
+    print(help_text.INFO_GET_POWER_AUTOMATE_URL)
 
     old_vals = get_old_vals(settings, ['azure_url'])
     if old_vals:
@@ -1240,17 +1240,17 @@ def get_powerautomate_url(settings):
 
 #     log.info('Script Execution Complete')
 
-def main():
-    """
-    Just what you think it is.
-    """
-    global config_file, test_mode, log, pyfile, hostfqdn
+# def main():
+#     """
+#     Just what you think it is.
+#     """
+#     global config_file, test_mode, log, pyfile, hostfqdn
 
-    config_file = 'datamap.json'
-    # log_file = 'jfit-ztp.log'
-    # file_level = logging.INFO
-    pyfile = (os.path.basename(__file__).lower())
-    hostfqdn = (socket.getfqdn().lower())
+#     config_file = 'datamap.json'
+#     log_file = 'jfit-ztp.log'
+#     file_level = logging.INFO
+#     pyfile = (os.path.basename(__file__).lower())
+#     hostfqdn = (socket.getfqdn().lower())
 
 
 LOG_NAME = 'jfit-ztp.log'
@@ -1270,8 +1270,8 @@ if __name__ == '__main__':
         log.info('Test Mode Disabled')
 
     if setup_mode:
-        setup.setup(CFG_NAME)
+        setup.setup(CFG_NAME, test_mode)
     else:
         worker.process_data(CFG_NAME, test_mode)
 
-    main()
+    # main()

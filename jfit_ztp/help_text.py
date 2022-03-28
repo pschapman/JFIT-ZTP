@@ -1,4 +1,4 @@
-"""Menu Prompts for Setup Wizard"""
+"""Help Text for Setup Wizard"""
 INFO_GET_API_KEY = ('\r\n\r\n'
  '================================API KEY=================================\r\n'
  ' Please provide your JotForm API key.  Key must have "Full Access"\r\n'

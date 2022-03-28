@@ -104,42 +104,6 @@ def write_ext_keystore(ext_keystore_file, headers, csv_data):
 
     # csv_path.close()
 
-def get_answer_element(config, answer_dict, ans_idx):
-    """
-    Extract answer string. (Or answer substring, if delimiter present.)
-        Parameters:
-            ans_dict (dict): Jotform response data for a question
-                ex. {'text': 'Question 2', 'answer': 'myserial : mymodel'}
-            ans_idx (int): Index of sub-answer. 1 for first/only, or n for
-            specific position with delimited string.
-        Returns:
-            sub_answer (str): Answer string or substring.
-    """
-    null_answer = config['null_answer']
-    delimiter = config['delimiter']
-
-    full_answer = answer_dict['answer']
-    split_answer = full_answer.split(delimiter)
-    log.debug('Full Answer Text from JotForm: %s',  full_answer)
-
-    if ans_idx + 1 > len(split_answer) and full_answer != null_answer:
-        log.warning('JotForm answer has %d elements. Data map looking for'
-                    ' value in element %d. Possible delimiter mismatch'
-                    ' or Data Map is wrong. Re-run setup to alter Data Map.',
-                    len(split_answer), (ans_idx + 1))
-        return None
-
-    sub_answer = None
-
-    if full_answer != null_answer:
-        answer_element = full_answer.split(delimiter)[int(ans_idx)]
-        log.debug('Parsed "%s" from full answer.', answer_element)
-        sub_answer = answer_element.strip()
-    else:
-        log.debug('Null answer found. Nothing returned to calling code.')
-
-    return sub_answer
-
 def update_csv_data(csv_data, headers, keystore_id, csv_update):
     """
     Update row data
@@ -202,20 +166,20 @@ def submission_to_cli(config, answer_set): # ans_set, data_map):
         q_id = answer_set[value['qID']]
         ans_idx = value['index']
         if 'keystore_id' in key:
-            keystore_id = get_answer_element(config, q_id, ans_idx)
+            keystore_id = shared.get_answer_element(config, q_id, ans_idx)
             log.info('Processing submission for Keystore ID: %s', keystore_id)
             # continue
         elif 'idarray' in key:
             # q_id = answer_set[value['qID']]
             # ans_idx = value['index']
-            device_id = get_answer_element(config, q_id, ans_idx)
+            device_id = shared.get_answer_element(config, q_id, ans_idx)
             if device_id:
                 device_id_set.append(device_id)
                 log.debug('Device ID: %s',  device_id)
         elif 'association' in key:
             # q_id = answer_set[value['qID']]
             # ans_idx = value['index']
-            var_data = get_answer_element(config, q_id, ans_idx)
+            var_data = shared.get_answer_element(config, q_id, ans_idx)
             if var_data:
                 cmd_set.append('ztp set association id ' + keystore_id
                                + ' template ' + var_data)
@@ -226,7 +190,7 @@ def submission_to_cli(config, answer_set): # ans_set, data_map):
         else:
             # q_id = answer_set[value['qID']]
             # ans_idx = value['index']
-            var_data = get_answer_element(config, q_id, ans_idx)
+            var_data = shared.get_answer_element(config, q_id, ans_idx)
             var_name = key
             if var_data:
                 cmd_set.append('ztp set keystore ' + keystore_id + ' '
@@ -275,14 +239,14 @@ def submission_to_csv(config, answer_set, headers, csv_data): #, data_map, heade
         q_id = answer_set[value['qID']]
         ans_idx = value['index']
         if 'keystore_id' in key:
-            keystore_id = get_answer_element(config, q_id, ans_idx)
+            keystore_id = shared.get_answer_element(config, q_id, ans_idx)
             log.info('Processing submission for Keystore ID: %s',  keystore_id)
             # continue
         else:
             # q_id = ans_set[value['qID']]
             # ans_idx = value['index']
             # If func returns None, then CSV field will be cleared.
-            var_data = get_answer_element(config, q_id, ans_idx)
+            var_data = shared.get_answer_element(config, q_id, ans_idx)
             var_name = key
             # if var_data:
             #     csv_update.update({var_name: var_data})
