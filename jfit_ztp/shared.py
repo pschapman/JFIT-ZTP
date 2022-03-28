@@ -105,7 +105,7 @@ def send_webex_msg(bot_token, room_id, markdown):
         log.warning('Send to WebEx Room Failed. Response Text:\r\n%s\r\n\r\n'
                     'Status Code: %d', response.text, response.status_code)
 
-def send_powerautomate_msg(url, payload):
+def send_webhook_msg(url, payload):
     """
     Query JotForm for new Submissions
         Parameters:

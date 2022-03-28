@@ -77,7 +77,7 @@ INFO_GET_NULL_ANSWER = ('\r\n\r\n'
  ' - CLI Mode: Commands will not be generated for items with the Null\r\n'
  '   Answer.\r\n'
  ' - CSV Mode: Field will be left blank for items with the Null Answer.\r\n'
- ' Example Null Answer: "Please Select Option"'
+ ' Example Null Answer: "Please Select Option"\r\n'
  '========================================================================'
 )
 INFO_KEYSTORE_ID = ('\r\n\r\n'

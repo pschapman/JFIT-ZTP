@@ -11,20 +11,20 @@ Open Caveats / Bugs / Limitations: See README.md
 To Do List: See README.md
 """
 # Python native modules
-from os import path
-import os
-import socket
+# from os import path
+# import os
+# import socket
 import sys
-import subprocess
+# import subprocess
 import json
-import csv
+# import csv
 import logging
 # import argparse
-from urllib.parse import quote
+# from urllib.parse import quote
 
 # External modules. Installed by freeztpInstaller.
 import requests
-from jinja2 import Template as jinja
+# from jinja2 import Template as jinja
 
 # External modules. Separate install required.
 try:
@@ -404,39 +404,39 @@ def mark_submissions_read(api_key, submission_ids):
 #     else:
 #         return None
 
-def get_csv_path():
-    """
-    Ask user for external keystore path. Validate existance. Retry as needed.
-        Returns:
-            csv_path = '/path/to/ztp-folder/keystore.csv'
-    """
-    validated = False
-    prompt = 'Enter explicit path to keystore file. (ex. /etc/my.csv) > '
-    while not validated:
-        csv_path = pyip.inputStr(prompt=prompt)
-        if path.exists(csv_path):
-            validated = True
-        else:
-            print('Cannot find file: "' + csv_path + '"')
-            result = pyip.inputYesNo('Create empty file? (y/N) > ', blank=True)
-            if result == 'yes':
-                open(csv_path, 'x', encoding='utf-8')
-                validated = True
-    return csv_path
+# def get_csv_path():
+#     """
+#     Ask user for external keystore path. Validate existance. Retry as needed.
+#         Returns:
+#             csv_path = '/path/to/ztp-folder/keystore.csv'
+#     """
+#     validated = False
+#     prompt = 'Enter explicit path to keystore file. (ex. /etc/my.csv) > '
+#     while not validated:
+#         csv_path = pyip.inputStr(prompt=prompt)
+#         if path.exists(csv_path):
+#             validated = True
+#         else:
+#             print('Cannot find file: "' + csv_path + '"')
+#             result = pyip.inputYesNo('Create empty file? (y/N) > ', blank=True)
+#             if result == 'yes':
+#                 open(csv_path, 'x', encoding='utf-8')
+#                 validated = True
+#     return csv_path
 
-def get_import_unknown():
-    """
-    Ask user how to deal with unknown keystore ids
-        Returns:
-            True / False
-    """
-    print(help_text.INFO_IMPORT_UNKNOWN)
-    prompt = 'Enable Unknown ID Import? (y/N) > '
-    import_unknown = pyip.inputYesNo(prompt=prompt, blank=True)
-    if import_unknown == 'yes':
-        return True
-    else:
-        return False
+# def get_import_unknown():
+#     """
+#     Ask user how to deal with unknown keystore ids
+#         Returns:
+#             True / False
+#     """
+#     print(help_text.INFO_IMPORT_UNKNOWN)
+#     prompt = 'Enable Unknown ID Import? (y/N) > '
+#     import_unknown = pyip.inputYesNo(prompt=prompt, blank=True)
+#     if import_unknown == 'yes':
+#         return True
+#     else:
+#         return False
 
 def get_sample_submission(api_key, form_id):
     """
@@ -452,7 +452,7 @@ def get_sample_submission(api_key, form_id):
     prompt = 'Hit <enter> after Form is submitted... > '
     pyip.inputStr(prompt=prompt, blank=True)
 
-    response = get_new_submissions(api_key, form_id)
+    response = shared.get_new_submissions(api_key, form_id)
     if (response.status_code == 200
             and response.json()['resultSet']['count'] >= 1):
         log.debug('Full Jotform Response (JSON):\r\n%s',
@@ -589,56 +589,56 @@ def dict_to_q_menu(ans_set):
 #             validated = True
 #     return delimiter
 
-def get_exec_mode(settings):
-    """
-    Ask user for Configuration Mode. settings passed to offer option to use
-    existing configuration.
-        Parameters:
-            settings = {'api_key': '<key>', '<vars>': '<vals>', 'data_map': {<map>}}
-        Returns:
-            exec_mode = '<csv or cli>'
-    """
-    print(help_text.INFO_GET_EXEC_MODE)
+# def get_exec_mode(settings):
+#     """
+#     Ask user for Configuration Mode. settings passed to offer option to use
+#     existing configuration.
+#         Parameters:
+#             settings = {'api_key': '<key>', '<vars>': '<vals>', 'data_map': {<map>}}
+#         Returns:
+#             exec_mode = '<csv or cli>'
+#     """
+#     print(help_text.INFO_GET_EXEC_MODE)
 
-    old_vals = get_old_vals(settings, ['exec_mode',
-         'csv_path', 'import_unknown'])
-    if old_vals:
-        exec_mode = old_vals[0]
-        csv_path = old_vals[1]
-        import_unknown = old_vals[2]
-        return exec_mode, csv_path, import_unknown
+#     old_vals = get_old_vals(settings, ['exec_mode',
+#          'csv_path', 'import_unknown'])
+#     if old_vals:
+#         exec_mode = old_vals[0]
+#         csv_path = old_vals[1]
+#         import_unknown = old_vals[2]
+#         return exec_mode, csv_path, import_unknown
 
-    prompt = 'Select script mode. (enter for default [csv]) \r\n'
-    exec_mode = pyip.inputMenu(['CLI', 'CSV'], prompt=prompt,
-                               blank=True, numbered=True)
-    exec_mode = exec_mode.lower() if exec_mode else 'csv'
-    if exec_mode == 'csv':
-        csv_path = get_csv_path()
-        import_unknown = get_import_unknown()
-        return exec_mode, csv_path, import_unknown
-    else:
-        return exec_mode, None, False
+#     prompt = 'Select script mode. (enter for default [csv]) \r\n'
+#     exec_mode = pyip.inputMenu(['CLI', 'CSV'], prompt=prompt,
+#                                blank=True, numbered=True)
+#     exec_mode = exec_mode.lower() if exec_mode else 'csv'
+#     if exec_mode == 'csv':
+#         csv_path = get_csv_path()
+#         import_unknown = get_import_unknown()
+#         return exec_mode, csv_path, import_unknown
+#     else:
+#         return exec_mode, None, False
 
-def get_null_answer(settings):
-    """
-    Ask user for Null Answer. settings passed to offer option to use
-    existing configuration.
-        Parameters:
-            settings = {'api_key': '<key>', '<vars>': '<vals>', 'data_map': {<map>}}
-        Returns:
-            null_answer = '<string>'
-    """
-    print(help_text.INFO_GET_NULL_ANSWER)
+# def get_null_answer(settings):
+#     """
+#     Ask user for Null Answer. settings passed to offer option to use
+#     existing configuration.
+#         Parameters:
+#             settings = {'api_key': '<key>', '<vars>': '<vals>', 'data_map': {<map>}}
+#         Returns:
+#             null_answer = '<string>'
+#     """
+#     print(help_text.INFO_GET_NULL_ANSWER)
 
-    old_vals = get_old_vals(settings, ['null_answer'])
-    if old_vals:
-        return old_vals[0]
+#     old_vals = get_old_vals(settings, ['null_answer'])
+#     if old_vals:
+#         return old_vals[0]
 
-    prompt = 'Specify Null Answer. (enter for default [Select From List]) > '
-    null_answer = pyip.inputStr(prompt=prompt, blank=True)
-    if not null_answer:
-        null_answer = 'Select From List'
-    return null_answer
+#     prompt = 'Specify Null Answer. (enter for default [Select From List]) > '
+#     null_answer = pyip.inputStr(prompt=prompt, blank=True)
+#     if not null_answer:
+#         null_answer = 'Select From List'
+#     return null_answer
 
 def get_ordinals(ans_set, ans_menu, var_name, prompt):
     """
@@ -654,6 +654,10 @@ def get_ordinals(ans_set, ans_menu, var_name, prompt):
         Returns:
             map_dict = {'qID': '1', 'index': 0}
     """
+    # Static entries for testing
+    delimiter = ':'
+    null_answer = 'Select from list'
+
     spaced_delimiter = ' ' + delimiter + ' '
     response = None
     prompt = '\r\n\r\n' + prompt
@@ -706,7 +710,7 @@ def get_answer(ans_set, var_name, var_dict):
     q_id = var_dict[var_name]['qID']
     ans_idx = var_dict[var_name]['index']
     ans_dict = ans_set[q_id]
-    var_data = get_answer_element(ans_dict, ans_idx)
+    var_data = shared.get_answer_element(ans_dict, ans_idx)
 
     if var_data:
         text = ('Q #: ' + q_id + ' / Answer Index: ' + str(ans_idx + 1)
@@ -795,102 +799,102 @@ def get_old_vals(var_dict, var_list, ans_set=None):
 
 #     return log
 
-def get_bot_token(settings):
-    """
-    Ask user for WebEx Bot Token. settings passed to offer option to use
-    existing configuration.
-        Parameters:
-            settings = {'bot_token': '<key>', '<vars>': '<vals>', 'data_map': {<map>}}
-        Returns:
-            bot_token = '<string>'
-    """
-    print(help_text.INFO_GET_BOT_TOKEN)
+# def get_bot_token(settings):
+#     """
+#     Ask user for WebEx Bot Token. settings passed to offer option to use
+#     existing configuration.
+#         Parameters:
+#             settings = {'bot_token': '<key>', '<vars>': '<vals>', 'data_map': {<map>}}
+#         Returns:
+#             bot_token = '<string>'
+#     """
+#     print(help_text.INFO_GET_BOT_TOKEN)
 
-    old_vals = get_old_vals(settings, ['bot_token'])
-    if old_vals:
-        return old_vals[0]
+#     old_vals = get_old_vals(settings, ['bot_token'])
+#     if old_vals:
+#         return old_vals[0]
 
-    validated = False
-    prompt = 'Input the Bot Token. > '
-    while not validated:
-        bot_token = pyip.inputStr(
-            prompt=prompt,
-            blockRegexes=[
-                ('.{110,}', 'Answer too long.'),
-                (r'\ ', 'Spaces not allowed.')
-                ]
-            )
-        result = query_available_rooms(bot_token)
-        if result:
-            validated = True
-    return bot_token
+#     validated = False
+#     prompt = 'Input the Bot Token. > '
+#     while not validated:
+#         bot_token = pyip.inputStr(
+#             prompt=prompt,
+#             blockRegexes=[
+#                 ('.{110,}', 'Answer too long.'),
+#                 (r'\ ', 'Spaces not allowed.')
+#                 ]
+#             )
+#         result = query_available_rooms(bot_token)
+#         if result:
+#             validated = True
+#     return bot_token
 
-def query_available_rooms(bot_token):
-    """
-    Request list of rooms accessible to Bot
-        Parameters:
-            bot_token = '<string>'
-        Returns:
-            None or
-            form_set = {'My Room Title': '<str>', 'My Room Title2': '<str>'}
-    """
-    url = 'https://webexapis.com/v1/rooms'
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + bot_token
-        }
-    payload = None
-    response = requests.request('GET', url, headers=headers, data=payload)
-    room_set = {}
-    if response.status_code == 200:
-        for room in response.json()['items']:
-            room_set.update({room['title']: room['id']})
-    else:
-        print('Room Query Failure. Status Code: ' + str(response.status_code)
-              + '\r\nResponse Text:\r\n\r\n' + response.text)
+# def query_available_rooms(bot_token):
+#     """
+#     Request list of rooms accessible to Bot
+#         Parameters:
+#             bot_token = '<string>'
+#         Returns:
+#             None or
+#             form_set = {'My Room Title': '<str>', 'My Room Title2': '<str>'}
+#     """
+#     url = 'https://webexapis.com/v1/rooms'
+#     headers = {
+#         'Content-Type': 'application/json',
+#         'Authorization': 'Bearer ' + bot_token
+#         }
+#     payload = None
+#     response = requests.request('GET', url, headers=headers, data=payload)
+#     room_set = {}
+#     if response.status_code == 200:
+#         for room in response.json()['items']:
+#             room_set.update({room['title']: room['id']})
+#     else:
+#         print('Room Query Failure. Status Code: ' + str(response.status_code)
+#               + '\r\nResponse Text:\r\n\r\n' + response.text)
 
-    if len(room_set) > 0:
-        return room_set
-    else:
-        return None
+#     if len(room_set) > 0:
+#         return room_set
+#     else:
+#         return None
 
-def get_room_id(bot_token, settings):
-    """
-    Ask user for WebEx Room ID. settings passed to offer option to use
-    existing configuration.
-        Parameters:
-            settings = {'api_key': '<key>', '<vars>': '<vals>', 'data_map': {<map>}}
-        Returns:
-            room_id = '<string>'
-    """
-    print(help_text.INFO_GET_ROOM_ID)
+# def get_room_id(bot_token, settings):
+#     """
+#     Ask user for WebEx Room ID. settings passed to offer option to use
+#     existing configuration.
+#         Parameters:
+#             settings = {'api_key': '<key>', '<vars>': '<vals>', 'data_map': {<map>}}
+#         Returns:
+#             room_id = '<string>'
+#     """
+#     print(help_text.INFO_GET_ROOM_ID)
 
-    old_vals = get_old_vals(settings, ['room_id'])
-    if old_vals:
-        return old_vals[0]
+#     old_vals = get_old_vals(settings, ['room_id'])
+#     if old_vals:
+#         return old_vals[0]
 
-    room_set = query_available_rooms(bot_token)
-    if not room_set:
-        print(help_text.FAIL_NO_ROOMS_FOUND)
-        sys.exit()
+#     room_set = query_available_rooms(bot_token)
+#     if not room_set:
+#         print(help_text.FAIL_NO_ROOMS_FOUND)
+#         sys.exit()
 
-    if len(room_set) == 1:
-        prompt = 'Select item or hit <enter>. > \r\n'
-    else:
-        prompt = 'Select item from list. > \r\n'
+#     if len(room_set) == 1:
+#         prompt = 'Select item or hit <enter>. > \r\n'
+#     else:
+#         prompt = 'Select item from list. > \r\n'
 
-    room_id = None
-    while not room_id:
-        room_name = pyip.inputMenu(list(room_set.keys()),
-                                   prompt=prompt,
-                                   numbered=True,
-                                   blank=True)
-        if len(room_set) == 1 and not room_name:
-            room_id = room_set.values()[0]
-        else:
-            room_id = room_set[room_name]
+#     room_id = None
+#     while not room_id:
+#         room_name = pyip.inputMenu(list(room_set.keys()),
+#                                    prompt=prompt,
+#                                    numbered=True,
+#                                    blank=True)
+#         if len(room_set) == 1 and not room_name:
+#             room_id = room_set.values()[0]
+#         else:
+#             room_id = room_set[room_name]
 
-    return room_id
+#     return room_id
 
 # def send_webex_msg(markdown):
 #     """
@@ -912,30 +916,30 @@ def get_room_id(bot_token, settings):
 #         log.warning('Send to WebEx Room Failed. Response Text:\r\n%s\r\n\r\n'
 #                     'Status Code: %d', response.text, response.status_code)
 
-def get_powerautomate_url(settings):
-    """
-    Ask user for MS Power Automate (Azure) URL. Settings passed to offer
-    option to use existing configuration.
-        Parameters:
-            settings = {'azure_url': '<url string>'}
-        Returns:
-            azure_url = '<url string>'
-    """
-    print(help_text.INFO_GET_POWER_AUTOMATE_URL)
+# def get_powerautomate_url(settings):
+#     """
+#     Ask user for MS Power Automate (Azure) URL. Settings passed to offer
+#     option to use existing configuration.
+#         Parameters:
+#             settings = {'azure_url': '<url string>'}
+#         Returns:
+#             azure_url = '<url string>'
+#     """
+#     print(help_text.INFO_GET_POWER_AUTOMATE_URL)
 
-    old_vals = get_old_vals(settings, ['azure_url'])
-    if old_vals:
-        return old_vals[0]
+#     old_vals = get_old_vals(settings, ['azure_url'])
+#     if old_vals:
+#         return old_vals[0]
 
-    prompt = 'Input the Power Automate URL (Azure). > '
-    azure_url = pyip.inputStr(
-        prompt=prompt,
-        blockRegexes=[
-            ('.{300,}', 'Answer too long.'),
-            (r'\ ', 'Spaces not allowed.')
-            ]
-        )
-    return azure_url
+#     prompt = 'Input the Power Automate URL (Azure). > '
+#     azure_url = pyip.inputStr(
+#         prompt=prompt,
+#         blockRegexes=[
+#             ('.{300,}', 'Answer too long.'),
+#             (r'\ ', 'Spaces not allowed.')
+#             ]
+#         )
+#     return azure_url
 
 # def send_powerautomate_msg(url, payload):
 #     """
@@ -1269,6 +1273,7 @@ if __name__ == '__main__':
     else:
         log.info('Test Mode Disabled')
 
+    setup_mode = True
     if setup_mode:
         setup.setup(CFG_NAME, test_mode)
     else:

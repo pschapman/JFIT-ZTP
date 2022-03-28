@@ -43,8 +43,6 @@ def read_ext_keystore(ext_keystore_file):
                 counter += 1
             log.info('Read %d line(s) from external keystore.', counter)
 
-        csv_file.close()
-
         # csv_path = open(ext_keystore_file, 'r', encoding='utf-8')
         # reader = csv.DictReader(csv_path)
         # headers = reader.fieldnames
@@ -88,8 +86,6 @@ def write_ext_keystore(ext_keystore_file, headers, csv_data):
             writer.writerow(value)
             counter += 1
         log.info('Wrote %d line(s) to external keystore.', counter)
-
-    csv_file.close()
 
     # csv_path = open(ext_keystore_file, 'w', newline='', encoding='utf-8')
 
@@ -311,7 +307,7 @@ def process_data(config_file, test_mode):
     # data_map = cfg['data_map']
     # api_key = cfg['api_key']
     # form_id = cfg['form_id']
-    # azure_url = cfg['azure_url']
+    # webhook_url = cfg['webhook_url']
     restart_ztp = False
     submission_ids = []
     cmd_set = []
@@ -375,12 +371,12 @@ def process_data(config_file, test_mode):
                     )
                 shared.send_webex_msg(bot_token, room_id, markdown)
 
-            if cfg['azure_url'] and keystore_id:
+            if cfg['webhook_url'] and keystore_id:
                 msgblob['message'] = jinja(html_form).render(
                     submission_id=submission['id'], keystore_id=keystore_id
                     )
                 payload = json.dumps(msgblob)
-                shared.send_powerautomate_msg(cfg['azure_url'], payload)
+                shared.send_webhook_msg(cfg['webhook_url'], payload)
 
         # Post processing tasks (e.g. restart ZTP)
         log.info('All submissions processed.')
