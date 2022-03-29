@@ -1,184 +1,212 @@
 """Help Text for Setup Wizard"""
-INFO_GET_API_KEY = ('\r\n\r\n'
- '================================API KEY=================================\r\n'
- ' Please provide your JotForm API key.  Key must have "Full Access"\r\n'
- ' permissions. Script will look only for new submissions, then mark\r\n'
- ' mark those submissions "read" when processing is done.\r\n'
- '========================================================================'
-)
-INFO_GET_FORM_ID = ('\r\n\r\n'
- '==============================SELECT FORM===============================\r\n'
- ' Please select your Form from the list below.  Only "Enabled" forms\r\n'
- ' are listed.\r\n'
- '========================================================================'
-)
-FAIL_NO_FORMS_FOUND = ('\r\n\r\n'
- '====================== CRITICAL FAILURE ================================\r\n'
- '                    NO ENABLED FORMS FOUND!\r\n'
- ' Verify API key and target form is accepting new submissions, then\r\n'
- ' restart FJIT-ZTP setup.\r\n'
- '====================== CRITICAL FAILURE ================================'
-)
-INFO_GET_DELIMITER = ('\r\n\r\n'
- '===============================DELIMITER================================\r\n'
- ' Script will recognize and parse compound answers.  For simplicity\r\n'
- ' only 1 (one) single character delimiter is allowed.\r\n\r\n'
- ' Example compound answer "ab12345 : FOC1111ZXY2 : c9300-48p", where:\r\n'
- ' - Colon (:) is the delimiter\r\n'
- ' - ab12345 is an asset tag (Custom Variable)\r\n'
- ' - FOC1111ZXY2 is a serial number\r\n'
- ' - c9300-48p is a valid "provision" command value (Custom Variable)\r\n'
- ' NOTE: Leading and terminal spaces will be stripped.\r\n'
- '========================================================================'
-)
-INFO_SAMPLE_SUBMISSION = ('\r\n\r\n'
- '===========================SAMPLE SUBMISSION============================\r\n'
- ' Setup needs a sample JotForm submission to map answers to freeZTP\r\n'
- ' configuration commands / external keystore entries.\r\n\r\n'
- ' *** PLEASE CREATE AND SUBMIT A FORM NOW ***\r\n'
- ' *** FILL OUT ALL ANSWERS - LEAVE NO DEFAULT ***\r\n\r\n'
- ' The submission ID will show in the url on the "Thank You" page.\r\n'
- ' Ex: https://submit.jotform.com/submit/<15 digit #>\r\n\r\n'
- ' Hit <enter> when ready to view list of forms.\r\n'
- '========================================================================'
-)
-INFO_IMPORT_UNKNOWN = ('\r\n\r\n'
- '=============================IMPORT UNKNOWN=============================\r\n'
- ' CSV Mode Only - Specify whether unknown keystore_ids should be added\r\n'
- ' to the external keystore.  Default is NO.\r\n'
- ' Enabling this feature will automatically generate new rows in the\r\n'
- ' external keystore. IMPACT: If you are pre-populating the external\r\n'
- ' keystore with host specific information, like management IP addresses,\r\n'
- ' then be aware these fields will be empty for newly generated rows.\r\n'
- ' THIS MAY IMPACT JUST-IN-TIME DEPLOYMENT OPERATIONS.\r\n'
- '========================================================================'
-)
-INFO_GET_EXEC_MODE = ('\r\n\r\n'
- '============================OPERATIONAL MODE============================\r\n'
- ' Select mode of operation.\r\n\r\n'
- ' - CSV Mode: All keystore and idarray information is stored in an\r\n'
- ' external keystore file.  Association data (template), if not using\r\n'
- ' the default, MUST also be stored in the external keystore.\r\n'
- ' - CLI Mode: All keystore and idarray information will be stored in\r\n'
- ' freeZTP\'s embedded config file.\r\n'
- '========================================================================'
-)
-INFO_GET_NULL_ANSWER = ('\r\n\r\n'
- '==============================NULL ANSWER===============================\r\n'
- ' Specify the Null Answer string which should be ignored. For simplicity,\r\n'
- ' only one Null Answer is allowed.\r\n\r\nEXPLANATION:\r\n'
- ' Most JotForm form elements allow for a default answer in case the user\r\n'
- ' skips the question.  For the purposes of ZTP, dropdown lists and the\r\n'
- ' Dynamic Dropdown Widget often present the most efficient way to get\r\n'
- ' both consistent and accurate answers from data entry personnel. Manual\r\n'
- ' data entry should generally be avoided for obvious reasons.\r\n'
- ' When device deployment is widely varied (e.g. switch stacks from 1 to 8\r\n'
- ' members), it is expected that some questions should be unanswered.\r\n\r\n'
- ' - CLI Mode: Commands will not be generated for items with the Null\r\n'
- '   Answer.\r\n'
- ' - CSV Mode: Field will be left blank for items with the Null Answer.\r\n'
- ' Example Null Answer: "Please Select Option"\r\n'
- '========================================================================'
-)
-INFO_KEYSTORE_ID = ('\r\n\r\n'
- '==============================KEYSTORE ID===============================\r\n'
- ' Select the answer to map to the Keystore ID\r\n'
- ' The Keystore ID in freeZTP is the common index value between ID Array\r\n'
- ' data, keystore values, and template associations. When using JotForm\r\n'
- ' with freeZTP the Keystore ID is likely to correspond with the hostname.\r\n'
- '========================================================================'
-)
-INFO_ASSOCIATION = ('\r\n\r\n'
- '=============================ASSOCIATION ID=============================\r\n'
- ' (OPTIONAL) Will JotForm provide the Association ID Value?\r\n'
- ' The Association ID in freeZTP is mapping of a configuration template to\r\n'
- ' a specific Keystore ID. If no association is specified, freeZTP will\r\n'
- ' use its default value. RECOMMENDATIONS:\r\n'
- ' - CLI Mode: Use freeZTP default value for single template cases. Use\r\n'
- '   JotForm answer mapping when using freeZTP to image multiple platforms\r\n'
- '   (e.g. routers & switches) and/or multiple roles (e.g. core & edge).\r\n'
- ' - CSV Mode: Create "association" column in the external keystore and\r\n'
- '   enter the appropriate field value when pre-loading other data.\r\n'
- '========================================================================'
-)
-INFO_SWITCH_STACKS = ('\r\n\r\n'
- '============================SWITCH STACKING=============================\r\n'
- ' (OPTIONAL) Will this ZTP instance build switch stacks?\r\n'
- ' freeZTP was built as a general purpose imaging system. For switch\r\n'
- ' stacks, multiple IDs (serial numbers) can be assigned to the Keystore\r\n'
- ' ID (idarray). This allows for proper device ID regardless of boot\r\n'
- ' order. If "no" is selected, setup will prompt for one (1) serial number\r\n'
- ' mapping. If "yes" is selected, setup will ask for a maximum stack size,\r\n'
- ' then prompt to map each position.\r\n\r\n'
- ' NOTE: If building mixed-model stacks it is recommended that you include\r\n'
- ' the model information with each serial using the delimiter.'
- ' FUN FACTS:\r\n'
- ' 1. ID array data is shared with the Jinja2 engine as idarray_x in the\r\n'
- '    order they show up. This can be used for automatic stack re-ordering\r\n'
- '    with EEM scripts.  See sample on the freeZTP GitHub site.\r\n'
- ' 2. If building mixed-model stacks, adding model information as a Custom\r\n'
- '    Variable can allow for pre-population of port configurations before\r\n'
- '    member switches join the stack. (switch <#> provision <model>\r\n'
- '    Simplest setup places serial and model in same answer and separated\r\n'
- '    by the delimiter (e.g. <serial> : <model>)\r\n'
- '========================================================================'
-)
-INFO_CUSTOM_VARIABLES = ('\r\n\r\n'
- '============================CUSTOM VARIABLES============================\r\n'
- ' (OPTIONAL) Define Custom Variables\r\n'
- ' Custom variables are mapped from JotForm to freeZTP commands / external\r\n'
- ' keystore fields in the exact same way as other mappings. The difference\r\n'
- ' is that custom variable names are your choice.\r\n'
- ' RESTRICTION: BLANK SPACES ARE NOT ALLOWED IN CUSTOM VARIABLE NAMES\r\n\r\n'
- ' Examples:\r\n'
- ' - model1, model2, modelx: Possible use for mixed-model stacks\r\n'
- ' - snmp_loc: Insert device meta-data in snmp location\r\n'
- '========================================================================'
-)
-INFO_WEBEX_TEAMS_INTEGRATION = ('\r\n\r\n'
- '========================WEBEX TEAMS INTEGRATION=========================\r\n'
- ' JFIT-ZTP is capable of sending update notifications through Cisco WebEx\r\n'
- ' Teams.  This is accomplished using a "Bot".  The Bot must be added to\r\n'
- ' a Room / Space like a normal user.  Room notifications are formatted in\r\n'
- ' Markdown. A sample, "new_submission.md", is included in the Git Repo.\r\n'
- ' Actual message markdown is embedded in the program code body.\r\n'
- '========================================================================'
-)
-INFO_GET_BOT_TOKEN = ('\r\n\r\n'
- '===============================BOT TOKEN================================\r\n'
- ' Please provide your WebEx Teams Bot Token. The bot will send messages\r\n'
- ' to the room like a normal user.\r\n'
- '========================================================================'
-)
-INFO_GET_ROOM_ID = ('\r\n\r\n'
- '==============================SELECT ROOM===============================\r\n'
- ' Please select your Room from the list below.\r\n'
- '========================================================================'
-)
-FAIL_NO_ROOMS_FOUND = ('\r\n\r\n'
- '====================== CRITICAL FAILURE ================================\r\n'
- '                    NO ROOMS FOUND!\r\n'
- ' Verify Bot has been added to the room / space.\r\n'
- '====================== CRITICAL FAILURE ================================'
-)
-INFO_POWER_AUTOMATE_INTEGRATION = ('\r\n\r\n'
- '======================POWER AUTOMATE INTEGRATION========================\r\n'
- ' JFIT-ZTP is capable of sending update notifications to Microsoft Teams.\r\n'
- ' This is accomplished using MS Power Automate with the "When a HTTP\r\n'
- ' request is received" trigger. This trigger generates a webhook URL in\r\n'
- ' Azure. MSPA logic provides message handling and delivery to MS Teams.\r\n'
- '========================================================================'
-)
-INFO_GET_POWER_AUTOMATE_URL = ('\r\n\r\n'
- '===========================POWER AUTOMATE URL===========================\r\n'
- ' Please provide the Azure URL provided by Power Automate.\r\n'
- '========================================================================'
-)
-# INFO_x = ('\r\n\r\n'
-#  '========================================================================\r\n'
-#  '========================================================================'
+HELP_JOTFORM_MENU = '''
+ ============================JOTFORM API KEY=============================
+  Provide your JotForm API key.  Key must have "Full Access" permissions.
+  Script only looks for new submissions. Submissions marked "read" when
+  data processing and ZTP updates have completed.
+ ========================================================================
+
+'''
+HELP_FORM_ID_SELECTOR = '''
+ ==========================SELECT JOTFORM FORM===========================
+  Please select your Form from this list of "enabled" forms.
+ ========================================================================
+
+'''
+FAIL_FORM_ID_SELECTOR = '''
+ ====================== CRITICAL FAILURE ================================
+                     NO ENABLED FORMS FOUND!
+  1) Verify desired form is accepting new submissions.
+  2) Re-run "Test JotForm Key and Connection". Update as needed.
+ ====================== CRITICAL FAILURE ================================
+
+'''
+HELP_KEYSTORE_CONFIG_MENU = """
+ =======================ZTP KEYSTORE UPDATE CONFIG=======================
+  Keystore Types
+    CLI
+        All keystore and idarray information will be stored in freeZTP's
+        embedded config file. (Default Setting)
+    CSV
+        All keystore and idarray information is stored in an external
+        keystore file. Association data (template), if not using the
+        default, MUST also be stored in the external keystore.
+
+  Import Unknown (ONLY APPLIES TO CSV MODE)
+    Default is FALSE.
+    Enabling this feature will generate rows in the external keystore for
+    non-present items. THIS MAY IMPACT JUST-IN-TIME DEPLOYMENT OPERATIONS.
+
+    EXAMPLE: Keystore with pre-populated management IP. New rows would
+    have no value for the management IP.  Deployment may fail.
+ ========================================================================
+
+"""
+HELP_DELIMITER_QUESTION = '''
+ ===============================DELIMITER================================
+  JFIT-ZTP will recognize and parse compound answers.  For simplicity
+  only 1 (one) single character delimiter is allowed. (NOT space or tab)
+
+  Example compound answer "ab12345 : FOC1111ZXY2 : c9300-48p", where:
+    Colon (:) is the delimiter
+    ab12345 is an asset tag (Custom Variable)
+    FOC1111ZXY2 is a serial number (ID Array)
+    c9300-48p is a valid "provision" command value (Custom Variable)
+
+  NOTE: Leading and terminal spaces will be stripped automatically.
+ ========================================================================
+
+'''
+HELP_NULL_ANSWER_QUESTION = '''
+ ==============================NULL ANSWER===============================
+  JFIT-ZTP will recognize answers which should be considered equivalent
+  to "blank" (null answer). Specify the answer string which should be
+  ignored. For simplicity, only one Null Answer is allowed.
+
+  Explanation:
+    Most JotForm form elements allow for a default answer in case the
+    user skips the question.  For the purposes of ZTP, dropdown lists and
+    the Dynamic Dropdown Widget often present the most efficient way to
+    get both consistent and accurate answers from data entry personnel.
+    When device deployment is widely varied (e.g. switch stacks from 1 to
+    8 members), it is expected that some questions should be unanswered.
+    Manual data entry should be avoided for obvious reasons.
+
+  Keystore Behavior
+    CLI Mode
+        Commands will not be generated for items with the Null Answer.
+    CSV Mode
+        Field will be left blank for items with the Null Answer.
+
+  Example Null Answer: "Please Select Option"
+ ========================================================================
+
+'''
+HELP_ROOM_ID_SELECTOR = '''
+ ==============================SELECT ROOM===============================
+  Please select your Room from this list.
+ ========================================================================
+
+'''
+FAIL_ROOM_ID_SELECTOR = '''
+ ====================== CRITICAL FAILURE ================================
+                     NO ROOMS FOUND!
+  Verify Bot has been added to the room / space.
+ ====================== CRITICAL FAILURE ================================
+
+'''
+HELP_WEBEX_MENU = '''
+ ========================WEBEX TEAMS NOTIFICATION========================
+  JFIT-ZTP is capable of sending update notifications through Cisco WebEx
+  Teams.  A Bot Token and target room are required for setup.
+
+  Mechanism
+    Notifications are sent via WebEx Teams Bot.  This is a user createable
+    construct which can be attached to a Teams Room like a user.
+
+  Message Format
+    Notifications are formatted in Markdown. A sample is included in the
+    Git Repo (new_submision.md). Message templates are found in
+    template_text.py with addition comments / instructions.
+ ========================================================================
+
+'''
+HELP_WEBHOOK_URL_MENU = '''
+ ==========================WEBHOOK NOTIFICATION==========================
+  JFIT-ZTP is capable of sending update notifications via Webhooks. A URL
+  is required for setup.
+
+  Mechanism
+    Notifications are sent to a HTTPS listener which is then responsible
+    for processing the message and final delivery.
+    Only HTTP POST and a header with "'Content-Type': 'application/json'"
+    is used. JFIT-ZTP has no authentication mechanism.
+
+  Default Configuration
+    JFIT-ZTP includes pre-built formatting (http) for notifications to
+    Microsoft Power Automate (MSPA) via Azure.
+
+  Message Format
+    JSON is mandatory. Choice of fields is open. "message" is the minimum
+    recommended field. Included default format includes HTTP formatted
+    message and metadata items for processing by MSPA. Message templates
+    are found in template_text.py with addition comments / instructions.
+ ========================================================================
+
+'''
+
+
+# INFO_SAMPLE_SUBMISSION = '''
+#  ===========================SAMPLE SUBMISSION============================
+#   Setup needs a sample JotForm submission to map answers to freeZTP
+#   configuration commands / external keystore entries.\r\n
+#   *** PLEASE CREATE AND SUBMIT A FORM NOW ***
+#   *** FILL OUT ALL ANSWERS - LEAVE NO DEFAULT ***\r\n
+#   The submission ID will show in the url on the "Thank You" page.
+#   Ex: https://submit.jotform.com/submit/<15 digit #>\r\n
+#   Hit <enter> when ready to view list of forms.
+#  ========================================================================
+# '''
+# INFO_KEYSTORE_ID = '''
+#  ==============================KEYSTORE ID===============================
+#   Select the answer to map to the Keystore ID
+#   The Keystore ID in freeZTP is the common index value between ID Array
+#   data, keystore values, and template associations. When using JotForm
+#   with freeZTP the Keystore ID is likely to correspond with the hostname.
+#  ========================================================================
+# '''
+# INFO_ASSOCIATION = '''
+#  =============================ASSOCIATION ID=============================
+#   (OPTIONAL) Will JotForm provide the Association ID Value?
+#   The Association ID in freeZTP is mapping of a configuration template to
+#   a specific Keystore ID. If no association is specified, freeZTP will
+#   use its default value. RECOMMENDATIONS:
+#   - CLI Mode: Use freeZTP default value for single template cases. Use
+#     JotForm answer mapping when using freeZTP to image multiple platforms
+#     (e.g. routers & switches) and/or multiple roles (e.g. core & edge).
+#   - CSV Mode: Create "association" column in the external keystore and
+#     enter the appropriate field value when pre-loading other data.
+#  ========================================================================
+# '''
+# INFO_SWITCH_STACKS = '''
+#  ============================SWITCH STACKING=============================
+#   (OPTIONAL) Will this ZTP instance build switch stacks?
+#   freeZTP was built as a general purpose imaging system. For switch
+#   stacks, multiple IDs (serial numbers) can be assigned to the Keystore
+#   ID (idarray). This allows for proper device ID regardless of boot
+#   order. If "no" is selected, setup will prompt for one (1) serial number
+#   mapping. If "yes" is selected, setup will ask for a maximum stack size,
+#   then prompt to map each position.\r\n
+#   NOTE: If building mixed-model stacks it is recommended that you include
+#   the model information with each serial using the delimiter.'
+#   FUN FACTS:
+#   1. ID array data is shared with the Jinja2 engine as idarray_x in the
+#      order they show up. This can be used for automatic stack re-ordering
+#      with EEM scripts.  See sample on the freeZTP GitHub site.
+#   2. If building mixed-model stacks, adding model information as a Custom
+#      Variable can allow for pre-population of port configurations before
+#      member switches join the stack. (switch <#> provision <model>
+#      Simplest setup places serial and model in same answer and separated
+#      by the delimiter (e.g. <serial> : <model>)
+#  ========================================================================
+# '''
+# INFO_CUSTOM_VARIABLES = '''
+#  ============================CUSTOM VARIABLES============================
+#   (OPTIONAL) Define Custom Variables
+#   Custom variables are mapped from JotForm to freeZTP commands / external
+#   keystore fields in the exact same way as other mappings. The difference
+#   is that custom variable names are your choice.
+#   RESTRICTION: BLANK SPACES ARE NOT ALLOWED IN CUSTOM VARIABLE NAMES\r\n
+#   Examples:
+#   - model1, model2, modelx: Possible use for mixed-model stacks
+#   - snmp_loc: Insert device meta-data in snmp location
+#  ========================================================================
+# '''
+# INFO_x = '''
+#  '========================================================================
+#  '========================================================================
 # )
-# FAIL_x = ('\r\n\r\n'
-#  '====================== CRITICAL FAILURE ================================\r\n'
-#  '====================== CRITICAL FAILURE ================================'
+# FAIL_x = '''
+#  '====================== CRITICAL FAILURE ================================
+#  '====================== CRITICAL FAILURE ================================
 # )

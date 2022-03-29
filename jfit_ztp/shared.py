@@ -10,6 +10,7 @@ import socket
 
 # External modules. Installed by freeztpInstaller.
 import requests
+from jinja2 import Template as jinja
 
 # Begin logging inside module, parent initializes configuration
 log = logging.getLogger(__name__)
@@ -105,14 +106,19 @@ def send_webex_msg(bot_token, room_id, markdown):
         log.warning('Send to WebEx Room Failed. Response Text:\r\n%s\r\n\r\n'
                     'Status Code: %d', response.text, response.status_code)
 
-def send_webhook_msg(url, payload):
+def send_webhook_msg(config, template):
     """
-    Query JotForm for new Submissions
+    Send HTTP POST to webhook URL
         Parameters:
             url = '<azure webhook url>'
             payload = '<JSON data>'
+            config (dict): Current configuration data
+            template (str): JSON payload template. Optional jinja tags.
         Returns:
     """
+    config['host_fqdn'] = hostfqdn
+    payload = json.dumps(jinja(template).render(config))
+    url = config['webhook_url']
     headers = {'Content-Type': 'application/json'}
     response = requests.request('POST', url, headers=headers, data=payload)
     log.debug('Attempting to send message to MS Power Automate (Azure)')

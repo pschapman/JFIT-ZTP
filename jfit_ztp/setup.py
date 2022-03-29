@@ -1,7 +1,6 @@
 """
 Notes:
     Python 3.6 or later
-    Revise helps throughout
     Move webex/webhook jinja templates to separate file
 """
 
@@ -19,6 +18,7 @@ from jinja2 import Template as jinja
 from . import shared
 from . import menu_text as menus
 from . import help_text
+from . import template_text as tmpl
 
 # Begin logging inside module, parent initializes configuration
 log = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ def init_empty_cfg():
     config = {'api_key': None,
               'form_id': None,
               'delimiter': ":",
-              'exec_mode': "cli",
+              'keystore_type': "cli",
               'csv_path': None,
               'import_unknown': False,
               'null_answer': "Select From List",
@@ -118,22 +118,21 @@ def check_api_key(api_key):
 
     return result
 
-def api_key_menu(config):
+def jotform_menu(config):
     """
-    API Key configuration menu. Key value must be hex, and 1..4 characters.
-        Parameters:
+    Jotform connection configuration menu. Key value must be hex, and 1..40
+    characters.
+        Parameters / Returns:
             config (dict): Current configuration data
-                ex. {'api_key': '<key>', '<vars>': '<vals>'}
-        Returns:
-            config (dict): Updated configuration data
     """
-    print(help_text.INFO_GET_API_KEY)
+    print(help_text.HELP_JOTFORM_MENU)
     err_state = True
     test_state = "Untested"
     while err_state:
         # Update dynamic menu parts
-        menu = jinja(menus.M_API_KEY).render(
+        menu = jinja(menus.M_JOTFORM).render(
             api_key = config['api_key'],
+            form_id = config['form_id'],
             test_result = test_state
         )
         print(menu)
@@ -158,8 +157,10 @@ def api_key_menu(config):
 
         elif selection == '2':
             test_state = check_api_key(config['api_key'])
+        elif selection == '3':
+            config = form_id_selector(config)
         elif selection.lower() == 'h':
-            print(help_text.INFO_GET_API_KEY)
+            print(help_text.HELP_JOTFORM_MENU)
         elif selection.lower() == 'q':
             err_state = False
 
@@ -168,14 +169,9 @@ def api_key_menu(config):
 def form_id_selector(config):
     """
     Presents dynamic list of available forms and requests selection
-        Parameters:
+        Parameters / Returns:
             config (dict): Current configuration data
-                ex. {'api_key': '<key>', '<vars>': '<vals>'}
-        Returns:
-            config (dict): Updated configuration data
     """
-    print(help_text.INFO_GET_FORM_ID)
-
     base_url = 'https://api.jotform.com/user/forms'
     api_filter = '?limit=1000&filter=' + quote('{"status":"ENABLED"}')
     url = (base_url + api_filter)
@@ -189,10 +185,12 @@ def form_id_selector(config):
             form_set.update({form['title']: form['id']})
 
     if len(form_set) > 0:
+        print(help_text.HELP_FORM_ID_SELECTOR)
         key_set = list(form_set.keys())
         selection = dynamic_selector_menu(key_set, 'AVAILABLE FORMS')
         config['form_id'] = form_set[key_set[selection]]
     else:
+        print(help_text.FAIL_FORM_ID_SELECTOR)
         config['form_id'] = None
 
     return config
@@ -227,23 +225,20 @@ def get_csv_path():
 
     return csv_path
 
-def exec_mode_menu(config):
+def keystore_config_menu(config):
     """
     JFIT Execution Mode configuration menu.
-        Parameters:
+        Parameters / Returns:
             config (dict): Current configuration data
-                ex. {'api_key': '<key>', '<vars>': '<vals>'}
-        Returns:
-            config (dict): Updated configuration data
     """
-    print(help_text.INFO_GET_EXEC_MODE)
+    print(help_text.HELP_KEYSTORE_CONFIG_MENU)
     err_state = True
-    toggle_mode = config['exec_mode']
+    toggle_mode = config['keystore_type']
     toggle_unknown = config['import_unknown']
     while err_state:
         # Update dynamic menu parts
-        menu = jinja(menus.M_EXEC_MODE).render(
-            exec_mode = toggle_mode.upper() ,
+        menu = jinja(menus.M_KEYSTORE_TYPE).render(
+            keystore_type = toggle_mode.upper() ,
             csv_path = config['csv_path'],
             import_unknown = toggle_unknown
         )
@@ -257,9 +252,9 @@ def exec_mode_menu(config):
         elif selection == '3':
             toggle_unknown = not toggle_unknown
         elif selection.lower() == 'h':
-            print(help_text.INFO_GET_EXEC_MODE)
+            print(help_text.HELP_KEYSTORE_CONFIG_MENU)
         elif selection.lower() == 'q':
-            config['exec_mode'] = toggle_mode
+            config['keystore_type'] = toggle_mode
             config['import_unknown'] = toggle_unknown
             err_state = False
 
@@ -268,13 +263,10 @@ def exec_mode_menu(config):
 def delimiter_question(config):
     """
     Simple question. Ask for new delimiter or accept current.
-        Parameters:
+        Parameters / Returns:
             config (dict): Current configuration data
-                ex. {'api_key': '<key>', '<vars>': '<vals>'}
-        Returns:
-            config (dict): Updated configuration data
     """
-    print(help_text.INFO_GET_DELIMITER)
+    print(help_text.HELP_DELIMITER_QUESTION)
     err_state = True
     delim = config['delimiter']
     prompt = f'Input single character delimiter ([enter] for "{delim}"): '
@@ -293,13 +285,10 @@ def delimiter_question(config):
 def null_answer_question(config):
     """
     Simple question. Ask for new null answer or accept current.
-        Parameters:
+        Parameters / Returns:
             config (dict): Current configuration data
-                ex. {'api_key': '<key>', '<vars>': '<vals>'}
-        Returns:
-            config (dict): Updated configuration data
     """
-    print(help_text.INFO_GET_NULL_ANSWER)
+    print(help_text.HELP_NULL_ANSWER_QUESTION)
     null_ans = config['null_answer']
     prompt = f'Input null answer string ([enter] for {null_ans}): '
     ans = input(prompt).strip()
@@ -334,13 +323,9 @@ def check_bot_token(bot_token):
 def room_id_selector(config):
     """
     Presents dynamic list of available rooms and requests selection
-        Parameters:
+        Parameters / Returns:
             config (dict): Current configuration data
-                ex. {'api_key': '<key>', '<vars>': '<vals>'}
-        Returns:
-            config (dict): Updated configuration data
     """
-    print(help_text.INFO_GET_FORM_ID)
     bot_token = config['bot_token']
     url = 'https://webexapis.com/v1/rooms'
     headers = {
@@ -358,10 +343,12 @@ def room_id_selector(config):
               + '\r\nResponse Text:\r\n\r\n' + response.text)
 
     if len(room_set) > 0:
+        print(help_text.HELP_ROOM_ID_SELECTOR)
         key_set = list(room_set.keys())
         selection = dynamic_selector_menu(key_set, 'AVAILABLE ROOMS')
         config['room_id'] = room_set[key_set[selection]]
     else:
+        print(help_text.FAIL_ROOM_ID_SELECTOR)
         config['room_id'] = None
 
     return config
@@ -369,13 +356,10 @@ def room_id_selector(config):
 def webex_menu(config):
     """
     WebEx Teams Notifications configuration menu.
-        Parameters:
+        Parameters / Returns:
             config (dict): Current configuration data
-                ex. {'api_key': '<key>', '<vars>': '<vals>'}
-        Returns:
-            config (dict): Updated configuration data
     """
-    print(help_text.INFO_WEBEX_TEAMS_INTEGRATION)
+    print(help_text.HELP_WEBEX_MENU)
     err_state = True
     test_state = "Untested"
     markdown = ('#### JFIT Setup \r\nHi, your WebEx Teams Bot integration is'
@@ -391,7 +375,7 @@ def webex_menu(config):
         selection = input('Select Menu Item: ')
 
         if selection == '1':
-            ans = input("Input API Key: ").strip()
+            ans = input("Input WebEx Teams Bot Token: ").strip()
             fail = False
             if ' ' in ans:
                 fail = True
@@ -412,7 +396,7 @@ def webex_menu(config):
             config['bot_token'] = None
             config['room_id'] = None
         elif selection.lower() == 'h':
-            print(help_text.INFO_WEBEX_TEAMS_INTEGRATION)
+            print(help_text.HELP_WEBEX_MENU)
         elif selection.lower() == 'q':
             err_state = False
 
@@ -421,22 +405,20 @@ def webex_menu(config):
 def webhook_url_menu(config):
     """
     Webhook Notifications configuration menu.
-        Parameters:
+        Parameters / Returns:
             config (dict): Current configuration data
-                ex. {'api_key': '<key>', '<vars>': '<vals>'}
-        Returns:
-            config (dict): Updated configuration data
     """
-    print(help_text.INFO_POWER_AUTOMATE_INTEGRATION)
+    print(help_text.HELP_WEBHOOK_URL_MENU)
     err_state = True
-    msgblob = {
-        'src-id': f'jfit_ztp.{shared.hostfqdn}',
-        'type': 'status',
-        'message': ('<p><strong>JFIT Setup</strong></p>'
-                    '<p>Hi, your Webhook URL is working!!</p>'
-                    '<span style="display: none">')
-    }
-    payload = json.dumps(msgblob)
+
+    # msgblob = {
+    #     'src-id': f'jfit_ztp.{shared.hostfqdn}',
+    #     'type': 'status',
+    #     'message': ('<p><strong>JFIT Setup</strong></p>'
+    #                 '<p>Hi, your Webhook URL is working!!</p>'
+    #                 '<span style="display: none">')
+    # }
+    # payload = json.dumps(msgblob)
 
     while err_state:
         # Update dynamic menu parts
@@ -464,11 +446,19 @@ def webhook_url_menu(config):
                 config['webhook_url'] = ans
 
         elif selection == '2':
-            shared.send_webhook_msg(config['webhook_url'], payload)
+            tmp_dict = config.copy()
+            tmp_dict['host_fqdn'] = shared.hostfqdn
+            tmp_dict['keystore_id'] = 'samplehostname'
+            tmp_dict['submission_id'] = '01234567890'
+            tmpl_json = json.dumps(tmpl.WEBHOOK_SETUP_PAYLOAD, indent=4)
+            payload = jinja(tmpl_json).render(tmp_dict)
+            print(f'\r\n{payload}\r\n')
+        elif selection == '3':
+            shared.send_webhook_msg(config, tmpl.WEBHOOK_SETUP_PAYLOAD)
         elif selection.lower() == 'x':
             config['webhook_url'] = None
         elif selection.lower() == 'h':
-            print(help_text.INFO_POWER_AUTOMATE_INTEGRATION)
+            print(help_text.HELP_WEBHOOK_URL_MENU)
         elif selection.lower() == 'q':
             err_state = False
 
@@ -480,13 +470,55 @@ def save_config(config_file, config):
         Parameters:
             config_file (str): Relative or absolute path
             config (dict): Current configuration data
-                ex. {'api_key': '<key>', '<vars>': '<vals>'}
         Returns:
             None
     """
     with open(config_file, 'w', encoding='utf-8') as json_file:
         json.dump(config, json_file, indent=4)
     print('Configuration saved to disk.')
+
+def main_menu(config_file, config): # pylint: disable=too-many-branches
+    """
+    Main Control Menu. All setup controlled from here.
+        Parameters / Returns:
+            config (dict): Current configuration data
+    """
+    err_state = True
+    while err_state:
+        # Update dynamic menu parts
+        menu = jinja(menus.M_MAIN).render(
+            api_key = config['api_key'],
+            form_id = config['form_id'],
+            keystore_type = config['keystore_type'].upper(),
+            delimiter = config['delimiter'],
+            null_answer = config['null_answer']
+        )
+        print(menu)
+        selection = input('Select Menu Item: ')
+
+        if selection == '1':
+            config = jotform_menu(config)
+        elif selection == '2':
+            config = keystore_config_menu(config)
+        elif selection == '3':
+            config = delimiter_question(config)
+        elif selection == '4':
+            config = null_answer_question(config)
+        elif selection == '5':
+            config = webex_menu(config)
+        elif selection == '6':
+            config = webhook_url_menu(config)
+        elif selection == '7':
+            print()
+        elif selection.lower() == 's':
+            save_config(config_file, config)
+        elif selection.lower() == 'q':
+            save_config(config_file, config)
+            err_state = False
+        elif selection.lower() == 'a':
+            ans = input('Quit without saving? (y/N)')
+            if ans.lower() == 'y':
+                err_state = False
 
 def setup(config_file, test_mode): # pylint: disable=unused-argument
     """
@@ -582,47 +614,3 @@ def setup(config_file, test_mode): # pylint: disable=unused-argument
     #     else:
     #         print('Sample submission marked as read.')
     # print('SETUP COMPLETE!')
-
-def main_menu(config_file, config): # pylint: disable=too-many-branches
-    """Main Menu"""
-    err_state = True
-    while err_state:
-        # Update dynamic menu parts
-        menu = jinja(menus.M_MAIN).render(
-            api_key = config['api_key'],
-            form_id = config['form_id'],
-            exec_mode = config['exec_mode'].upper(),
-            import_unknown = config['import_unknown'],
-            delimiter = config['delimiter'],
-            null_answer = config['null_answer']
-        )
-        print(menu)
-        selection = input('Select Menu Item: ')
-
-        if selection == '1':
-            config = api_key_menu(config)
-        elif selection == '2':
-            config = form_id_selector(config)
-        elif selection == '3':
-            config = exec_mode_menu(config)
-        elif selection == '4':
-            config = delimiter_question(config)
-        elif selection == '5':
-            config = null_answer_question(config)
-        elif selection == '6':
-            config = webex_menu(config)
-        elif selection == '7':
-            config = webhook_url_menu(config)
-        elif selection == '8':
-            print()
-        elif selection.lower() == 'h':
-            print()
-        elif selection.lower() == 's':
-            save_config(config_file, config)
-        elif selection.lower() == 'q':
-            save_config(config_file, config)
-            err_state = False
-        elif selection.lower() == 'a':
-            ans = input('Quit without saving? (y/N)')
-            if ans.lower() == 'y':
-                err_state = False

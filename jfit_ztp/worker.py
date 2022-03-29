@@ -301,7 +301,7 @@ def process_data(config_file, test_mode):
     # delimiter = cfg['delimiter']
     bot_token = cfg['bot_token']
     room_id = cfg['room_id']
-    # exec_mode = cfg['exec_mode']      # cli or csv
+    # keystore_type = cfg['keystore_type']      # cli or csv
     # import_unknown = cfg['import_unknown']
     # csv_path = cfg['csv_path']
     # data_map = cfg['data_map']
@@ -330,7 +330,7 @@ def process_data(config_file, test_mode):
                   'submissions.  Stopping script without processing.')
             sys.exit()
 
-        if cfg['exec_mode'] == 'csv':
+        if cfg['keystore_type'] == 'csv':
             headers, csv_data = read_ext_keystore(cfg['csv_path'])
             if csv_data is None:
                 # Error logged in read_ext_keystore
@@ -355,7 +355,7 @@ def process_data(config_file, test_mode):
             submission_ids.append(submission['id'])
             ans_set = submission['answers']
             # Prepare ZTP updates based on keystore method: cli or csv.
-            if cfg['exec_mode'] == 'cli':
+            if cfg['keystore_type'] == 'cli':
                 more_cmds, keystore_id = submission_to_cli(cfg, ans_set,)
                 restart_ztp = True
                 cmd_set.extend(more_cmds)
@@ -383,12 +383,12 @@ def process_data(config_file, test_mode):
         log.debug('Submission Set: %s', ' '.join(submission_ids))
 
         if restart_ztp:
-            if cfg['exec_mode'] == 'csv' and csv_data:
+            if cfg['keystore_type'] == 'csv' and csv_data:
                 # Test harness to write to alternate external keystore file
                 # if test_mode:
                 #     cfg['csv_path'] = cfg['csv_path'][:-4] + '2.csv'
                 write_ext_keystore(cfg['csv_path'], headers, csv_data)
-            elif cfg['exec_mode'] == 'csv' and not csv_data:
+            elif cfg['keystore_type'] == 'csv' and not csv_data:
                 log.warning('Referenced keystore empty (0 bytes) and Unknown '
                     'Import disabled. Stopping script without marking new '
                     'submissions as "read".')

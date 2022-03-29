@@ -3,43 +3,45 @@ M_MAIN = '''
        CURRENT SETTINGS
     Jotform API Key: {{ api_key }}
     Jotform Form ID: {{ form_id }}
-    JFIT Mode: {{ exec_mode }} / Import Unknown: {{ import_unknown }}
+    freeZTP Keystore Type: {{ keystore_type }}
     Answer Delimiter: "{{ delimiter }}"
     Null Answer: "{{ null_answer }}"
 
-       MAIN MENU
+         MAIN MENU
+         ---------
     1. Set JotForm API Key
-    2. Select JotForm Form ID
-    3. Set Execution Mode (CSV / CLI)
-    4. Set Delmiter (Compound Answers)
-    5. Set Null Answer
-    6. Configure Cisco WebEx Teams Notifications
-    7. Configure Generic WebHook Notification (ex. MS PowerAutomate)
-    8. Configure Jotform Answer Mappings
-    H. Display Help
+    2. Set freeZTP Keystore Type (CSV / CLI)
+    3. Set Delmiter (Compound Answers)
+    4. Set Null Answer
+    5. Configure Cisco WebEx Teams Notifications
+    6. Configure Generic WebHook Notifications (ex. MS PowerAutomate)
+    7. Configure Jotform Answer Mappings
     S. Save
     Q. Save and Quit
     A. Abandon Changes and Quit
 '''
-M_API_KEY = '''
+M_JOTFORM = '''
        CURRENT SETTINGS
     Jotform API Key: {{ api_key }}
     API Key Test Result: {{ test_result }}
+    Jotform Form ID: {{ form_id }}
 
-       JOTFORM API KEY CONFIGURATION MENU
+         JOTFORM CONNECTION CONFIGURATION MENU
+         -------------------------------------
     1. Set JotForm API Key
-    2. Test Jotform Connection
+    2. Test Jotform Key and Connection
+    3. Select Jotform Form ID
     H. Display Help
     Q. Quit to Main Menu
 '''
-M_EXEC_MODE = '''
+M_KEYSTORE_TYPE = '''
        CURRENT SETTINGS
-    JFIT Execution Mode: {{ exec_mode }}
+    freeZTP Keystore Type: {{ keystore_type }}
     External Keystore Path: {{ csv_path }}
     Import Unknown: {{ import_unknown }}
 
-       JFIT EXECUTION MODE CONFIGURATION MENU
-    1. Toggle JFIT Execution Mode (CLI / CSV)
+         ZTP KEYSTORE CONFIGURATION MENU
+    1. Toggle freeZTP Keystore Type (CLI / CSV)
     2. Set External Keystore Path
     3. Toggle Import Unknown
     H. Display Help
@@ -66,7 +68,8 @@ M_WEBHOOK = '''
 
        GENERIC WEBHOOK CONFIGURATION MENU
     1. Set Webhook URL
-    2. Send Test Message to Webhook
+    2. Print Test Rendered Message Payload to Screen
+    3. Send Test Message to Webhook
     X. Clear Webhook Configuration
     H. Display Help
     Q. Quit to Main Menu
