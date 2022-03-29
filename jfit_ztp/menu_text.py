@@ -67,10 +67,9 @@ M_WEBHOOK = '''
     Webhook URL: {{ webhook_url }}
 
        GENERIC WEBHOOK CONFIGURATION MENU
-    1. Set Webhook URL
-    2. Print Test Rendered Message Payload to Screen
+    1. Set Webhook URL (No input = clear config)
+    2. Print Test Message to Screen (Payload)
     3. Send Test Message to Webhook
-    X. Clear Webhook Configuration
     H. Display Help
     Q. Quit to Main Menu
 '''

@@ -15,9 +15,6 @@ from jinja2 import Template as jinja
 # Begin logging inside module, parent initializes configuration
 log = logging.getLogger(__name__)
 
-hostfqdn = (socket.getfqdn().lower())
-
-
 def parse_args():
     """
     Start argparse to provide help and read back CLI arguments
@@ -86,7 +83,7 @@ def get_new_submissions(api_key, form_id):
     # Error checking in calling code.
     return response
 
-def send_webex_msg(bot_token, room_id, markdown):
+def send_webex_msg(merge_dict, template):
     """
     Query JotForm for new Submissions
         Parameters:
@@ -94,37 +91,46 @@ def send_webex_msg(bot_token, room_id, markdown):
             bot_token = '<string>'
             room_id = '<hex string>'
     """
+    bot_token = merge_dict['bot_token']
+    room_id = merge_dict['room_id']
+
+    markdown = jinja(template).render(merge_dict)
+    payload = json.dumps({'roomId': room_id, 'markdown': markdown})
+
     url = 'https://webexapis.com/v1/messages'
     headers = {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + bot_token
         }
-    payload = json.dumps({'roomId': room_id, 'markdown': markdown})
     response = requests.request('POST', url, headers=headers, data=payload)
+
     log.debug('Attempting to send message to Teams Room')
+
     if response.status_code != 200:
         log.warning('Send to WebEx Room Failed. Response Text:\r\n%s\r\n\r\n'
                     'Status Code: %d', response.text, response.status_code)
 
-def send_webhook_msg(config, template):
+def send_webhook_msg(merge_dict, template):
     """
     Send HTTP POST to webhook URL
         Parameters:
-            url = '<azure webhook url>'
-            payload = '<JSON data>'
             config (dict): Current configuration data
             template (str): JSON payload template. Optional jinja tags.
         Returns:
     """
-    config['host_fqdn'] = hostfqdn
-    payload = json.dumps(jinja(template).render(config))
-    url = config['webhook_url']
+    tmpl_json = json.dumps(template)
+    payload = jinja(tmpl_json).render(merge_dict)
+
+    url = merge_dict['webhook_url']
     headers = {'Content-Type': 'application/json'}
     response = requests.request('POST', url, headers=headers, data=payload)
-    log.debug('Attempting to send message to MS Power Automate (Azure)')
+
+    log.debug('Trying to send message to webhook: %s', url)
+
     if response.status_code not in range (200,299):
-        log.warning('Send to MS Power Automate Failed. Response Text:\r\n%s'
-                    '\r\n\r\nStatus Code: %d', response.text, response.status_code)
+        log.warning('Send to webhook failed. Response text:\r\n%s'
+                    '\r\n\r\nStatus Code: %d', response.text,
+                    response.status_code)
 
 def mark_submissions_read(api_key, submission_ids):
     """
@@ -189,3 +195,20 @@ def get_answer_element(config, answer_dict, ans_idx):
         log.debug('Null answer found. Nothing returned to calling code.')
 
     return sub_answer
+
+def build_merge_data(cfg, ks_id=None, sub_id=None):
+    """
+    Creates special dictionary for notification Jinja2 merges. Contains both
+    configuration plus additional useful fields.
+        Parameters:
+            cfg (dict): Current configuration data
+            ks_id (str): Keystore ID (typically hostname)
+            sub_id (str): Jotform submission ID
+        Returns:
+            merge_dict (dict): Combined items + uniques defined here
+    """
+    merge_dict = cfg.copy()
+    merge_dict['keystore_id'] = ks_id
+    merge_dict['submission_id'] = sub_id
+    merge_dict['host_fqdn'] = (socket.getfqdn().lower())
+    return merge_dict

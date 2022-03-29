@@ -1,7 +1,6 @@
 """
 Notes:
     Python 3.6 or later
-    Move webex/webhook jinja templates to separate file
 """
 
 # Python native modules
@@ -140,21 +139,8 @@ def jotform_menu(config):
 
         if selection == '1':
             ans = input("Input API Key (Hex string): ").strip()
-            fail = False
-            if ' ' in ans:
-                fail = True
-                print('Answer contains illegal space character.')
-            try:
-                i = int(ans, 16) # pylint: disable=unused-variable
-            except ValueError:
-                fail = True
-                print('Answer does not appear to be a hex string.')
-            if len(ans) > 40:
-                fail = True
-                print('Answer is greater than 40 characters.')
-            if not fail:
-                config['api_key'] = ans
-
+            # No input checks intentional. Test facility will reveal issues.
+            config['api_key'] = ans
         elif selection == '2':
             test_state = check_api_key(config['api_key'])
         elif selection == '3':
@@ -362,8 +348,6 @@ def webex_menu(config):
     print(help_text.HELP_WEBEX_MENU)
     err_state = True
     test_state = "Untested"
-    markdown = ('#### JFIT Setup \r\nHi, your WebEx Teams Bot integration is'
-                ' working!!\r\n\r\n---')
     while err_state:
         # Update dynamic menu parts
         menu = jinja(menus.M_WEBEX).render(
@@ -376,29 +360,31 @@ def webex_menu(config):
 
         if selection == '1':
             ans = input("Input WebEx Teams Bot Token: ").strip()
-            fail = False
-            if ' ' in ans:
-                fail = True
-                print('Answer contains illegal space character.')
-            if len(ans) > 110:
-                fail = True
-                print('Answer is greater than 110 characters.')
-            if not fail:
-                config['bot_token'] = ans
-
+            # No input checks intentional. Test facility will reveal issues.
+            config['bot_token'] = ans
         elif selection == '2':
             test_state = check_bot_token(config['bot_token'])
         elif selection == '3':
             config = room_id_selector(config)
         elif selection == '4':
-            shared.send_webex_msg(config['bot_token'], config['room_id'], markdown)
+            merge_dict = shared.build_merge_data(config)
+            shared.send_webex_msg(merge_dict, tmpl.WEBEX_SETUP_MSG)
         elif selection.lower() == 'x':
             config['bot_token'] = None
             config['room_id'] = None
         elif selection.lower() == 'h':
             print(help_text.HELP_WEBEX_MENU)
         elif selection.lower() == 'q':
-            err_state = False
+            if config['bot_token'] and config['room_id']:
+                err_state = False
+            else:
+                print(help_text.WARN_WEBEX_MENU)
+                ans = input("Exit and clear config? (y/N)")
+                if ans.lower() == 'y':
+                    config['bot_token'] = None
+                    config['room_id'] = None
+                    err_state = False
+
 
     return config
 
@@ -410,16 +396,6 @@ def webhook_url_menu(config):
     """
     print(help_text.HELP_WEBHOOK_URL_MENU)
     err_state = True
-
-    # msgblob = {
-    #     'src-id': f'jfit_ztp.{shared.hostfqdn}',
-    #     'type': 'status',
-    #     'message': ('<p><strong>JFIT Setup</strong></p>'
-    #                 '<p>Hi, your Webhook URL is working!!</p>'
-    #                 '<span style="display: none">')
-    # }
-    # payload = json.dumps(msgblob)
-
     while err_state:
         # Update dynamic menu parts
         menu = jinja(menus.M_WEBHOOK).render(
@@ -430,33 +406,17 @@ def webhook_url_menu(config):
 
         if selection == '1':
             ans = input("Input Webhook URL ([enter] for None): ").strip()
-            fail = False
-            if ' ' in ans:
-                fail = True
-                print('Answer contains illegal space character.')
-            if len(ans) > 300:
-                fail = True
-                print('Answer is greater than 300 characters.')
-            if not ans:
-                ans = None
-            elif ('https://').lower() not in ans:
-                fail = True
-                print('Answer does not contain "https://".')
-            if not fail:
-                config['webhook_url'] = ans
-
+            # No input checks intentional. Test facility will reveal issues.
+            config['webhook_url'] = ans
         elif selection == '2':
-            tmp_dict = config.copy()
-            tmp_dict['host_fqdn'] = shared.hostfqdn
-            tmp_dict['keystore_id'] = 'samplehostname'
-            tmp_dict['submission_id'] = '01234567890'
-            tmpl_json = json.dumps(tmpl.WEBHOOK_SETUP_PAYLOAD, indent=4)
-            payload = jinja(tmpl_json).render(tmp_dict)
+            merge_dict = shared.build_merge_data(config)
+            # Render template in the same was as notification
+            tmpl_json = json.dumps(tmpl.WEBHOOK_SETUP_DICT, indent=4)
+            payload = jinja(tmpl_json).render(merge_dict)
             print(f'\r\n{payload}\r\n')
         elif selection == '3':
-            shared.send_webhook_msg(config, tmpl.WEBHOOK_SETUP_PAYLOAD)
-        elif selection.lower() == 'x':
-            config['webhook_url'] = None
+            merge_dict = shared.build_merge_data(config)
+            shared.send_webhook_msg(config, tmpl.WEBHOOK_SETUP_DICT)
         elif selection.lower() == 'h':
             print(help_text.HELP_WEBHOOK_URL_MENU)
         elif selection.lower() == 'q':

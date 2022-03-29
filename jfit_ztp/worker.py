@@ -9,10 +9,11 @@ import csv
 import subprocess
 
 # External modules. Installed by freeztpInstaller.
-from jinja2 import Template as jinja
+# from jinja2 import Template as jinja
 
 # Private modules
 from . import shared
+from . import template_text as tmpl
 
 # Begin logging inside module, parent initializes configuration
 log = logging.getLogger(__name__)
@@ -296,18 +297,6 @@ def process_data(config_file, test_mode):
         # Error logged in read_config
         sys.exit()
 
-    # global null_answer, delimiter, import_unknown, bot_token, room_id
-    # null_answer = cfg['null_answer']
-    # delimiter = cfg['delimiter']
-    bot_token = cfg['bot_token']
-    room_id = cfg['room_id']
-    # keystore_type = cfg['keystore_type']      # cli or csv
-    # import_unknown = cfg['import_unknown']
-    # csv_path = cfg['csv_path']
-    # data_map = cfg['data_map']
-    # api_key = cfg['api_key']
-    # form_id = cfg['form_id']
-    # webhook_url = cfg['webhook_url']
     restart_ztp = False
     submission_ids = []
     cmd_set = []
@@ -336,19 +325,6 @@ def process_data(config_file, test_mode):
                 # Error logged in read_ext_keystore
                 sys.exit()
 
-        mkdn_form = ('#### JotForm Data Added to freeZTP\r\n'
-                    '{{ keystore_id }} ([{{ submission_id }}]'
-                    '(https://jotform.com/edit/{{ submission_id }})) '
-                    '\r\n\r\n---')
-
-        html_form = ('<p><strong>JotForm Data Added to freeZTP</strong></p>'
-                    '<p>{{ keystore_id }} (<a href="https://jotform.com/edit'
-                    '/{{ submission_id }}">{{ submission_id }}</a>)</p>'
-                    '<span style="display: none">')
-        msgblob = {}
-        msgblob['src-id'] = 'jfit_ztp.' + shared.hostfqdn
-        msgblob['type'] = 'status'
-
         # Loop through all entries
         for submission in response.json()['content']:
             # Build submission list.  Process all before marking as read.
@@ -356,27 +332,22 @@ def process_data(config_file, test_mode):
             ans_set = submission['answers']
             # Prepare ZTP updates based on keystore method: cli or csv.
             if cfg['keystore_type'] == 'cli':
-                more_cmds, keystore_id = submission_to_cli(cfg, ans_set,)
+                more_cmds, keystore_id = submission_to_cli(cfg, ans_set)
                 restart_ztp = True
                 cmd_set.extend(more_cmds)
             else:
                 headers, csv_data, change_flag, keystore_id = (
-                    submission_to_csv(ans_set, cfg['data_map'], headers,csv_data)
+                    submission_to_csv(cfg, ans_set, headers, csv_data)
                 )
                 restart_ztp = True if change_flag else restart_ztp
 
             if cfg['bot_token'] and keystore_id:
-                markdown = jinja(mkdn_form).render(
-                    submission_id=submission['id'], keystore_id=keystore_id
-                    )
-                shared.send_webex_msg(bot_token, room_id, markdown)
+                merge_dict = shared.build_merge_data(cfg)
+                shared.send_webex_msg(merge_dict, tmpl.WEBEX_WORKER_MSG)
 
             if cfg['webhook_url'] and keystore_id:
-                msgblob['message'] = jinja(html_form).render(
-                    submission_id=submission['id'], keystore_id=keystore_id
-                    )
-                payload = json.dumps(msgblob)
-                shared.send_webhook_msg(cfg['webhook_url'], payload)
+                merge_dict = shared.build_merge_data(cfg)
+                shared.send_webhook_msg(merge_dict, tmpl.WEBHOOK_WORKER_DICT)
 
         # Post processing tasks (e.g. restart ZTP)
         log.info('All submissions processed.')

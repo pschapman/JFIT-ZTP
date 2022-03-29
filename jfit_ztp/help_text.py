@@ -5,13 +5,11 @@ HELP_JOTFORM_MENU = '''
   Script only looks for new submissions. Submissions marked "read" when
   data processing and ZTP updates have completed.
  ========================================================================
-
 '''
 HELP_FORM_ID_SELECTOR = '''
  ==========================SELECT JOTFORM FORM===========================
   Please select your Form from this list of "enabled" forms.
  ========================================================================
-
 '''
 FAIL_FORM_ID_SELECTOR = '''
  ====================== CRITICAL FAILURE ================================
@@ -19,7 +17,6 @@ FAIL_FORM_ID_SELECTOR = '''
   1) Verify desired form is accepting new submissions.
   2) Re-run "Test JotForm Key and Connection". Update as needed.
  ====================== CRITICAL FAILURE ================================
-
 '''
 HELP_KEYSTORE_CONFIG_MENU = """
  =======================ZTP KEYSTORE UPDATE CONFIG=======================
@@ -40,7 +37,6 @@ HELP_KEYSTORE_CONFIG_MENU = """
     EXAMPLE: Keystore with pre-populated management IP. New rows would
     have no value for the management IP.  Deployment may fail.
  ========================================================================
-
 """
 HELP_DELIMITER_QUESTION = '''
  ===============================DELIMITER================================
@@ -55,7 +51,6 @@ HELP_DELIMITER_QUESTION = '''
 
   NOTE: Leading and terminal spaces will be stripped automatically.
  ========================================================================
-
 '''
 HELP_NULL_ANSWER_QUESTION = '''
  ==============================NULL ANSWER===============================
@@ -80,20 +75,17 @@ HELP_NULL_ANSWER_QUESTION = '''
 
   Example Null Answer: "Please Select Option"
  ========================================================================
-
 '''
 HELP_ROOM_ID_SELECTOR = '''
  ==============================SELECT ROOM===============================
   Please select your Room from this list.
  ========================================================================
-
 '''
 FAIL_ROOM_ID_SELECTOR = '''
  ====================== CRITICAL FAILURE ================================
                      NO ROOMS FOUND!
   Verify Bot has been added to the room / space.
  ====================== CRITICAL FAILURE ================================
-
 '''
 HELP_WEBEX_MENU = '''
  ========================WEBEX TEAMS NOTIFICATION========================
@@ -109,7 +101,11 @@ HELP_WEBEX_MENU = '''
     Git Repo (new_submision.md). Message templates are found in
     template_text.py with addition comments / instructions.
  ========================================================================
-
+'''
+WARN_WEBEX_MENU = '''
+ ========================== WARNING =====================================
+  Bot Token or Room ID empty. Leaving now will remove configuration.
+ ========================================================================
 '''
 HELP_WEBHOOK_URL_MENU = '''
  ==========================WEBHOOK NOTIFICATION==========================
@@ -132,7 +128,6 @@ HELP_WEBHOOK_URL_MENU = '''
     message and metadata items for processing by MSPA. Message templates
     are found in template_text.py with addition comments / instructions.
  ========================================================================
-
 '''
 
 
