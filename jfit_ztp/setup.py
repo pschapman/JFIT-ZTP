@@ -687,7 +687,7 @@ def build_custom_menu_data(data_map):
     for var_name, var_info in data_map.items():
         if 'idarray_' not in var_name and 'keystore_id' not in var_name:
             render_data += (f"    {var_name}: {var_info['q_text']} |"
-                            + f" {var_info['a_id']} | {var_info['a_idx']}")
+                          + f" {var_info['a_id']} | {var_info['a_idx']}\r\n")
             var_list.append(var_name)
 
     return render_data, var_list
