@@ -1,15 +1,13 @@
-# UNDER DEVELOPMENT
-Not ready for production use.  Use main!
-
----
-
----
-
----
-
 # JotForm Form Import Tool for freeZTP (JFIT-ZTP)
+
+## What's New
+- Converted to Python package style
+- Removed compatibility for Python 3.5 and earlier
+- Menu Driven Setup
+- [Mostly] PEP compliant
+
 ## Introduction
-JFIT-ZTP is simply a data extraction tool.  It maps answer data from JotForm to functional configuration for freeZTP.
+JFIT-ZTP is a purpose built data extraction tool.  It maps answer data from JotForm to functional configuration for freeZTP.
 
 **What is JotForm?** JotForm is a flexible form generation platform.  They offer both free and paid subscription services.  Subscription level will determine  monthly submission, storage, and API call limits among other features.  Please visit [jotform.com](https://www.jotform.com) for more details.
 
@@ -36,75 +34,78 @@ After updates to ZTP are executed the JotForm submissions are marked "read".  Th
 
 ## Compatibility
 These have been tested so far.  Install instructions based on tested platforms.
-- Platforms: Debian Buster (10) and derivative distros including Ubuntu 20.04LTS and Raspbian Kernel 5 (PiOS)
-- Python: 2.7 (caveats) & 3.9
+- Platforms:
+  - Debian Buster (10) and derivative distros including Ubuntu 20.04LTS and Raspbian Kernel 5 (PiOS)
+  - Microsoft Windows 10 (development platform)
+- Python: 3.6 and later only
+  - **This deviates from current freeZTP installation. Be sure to use 'python3' as your command executable.**
 
 
 ## Installation
 This procedure assumes that you have already installed freeZTP and it is running as expected.
-NOTE: JFIT-ZTP relies on external modules downloaded by the freeZTP installer. If not already installed, ensure that both requests and jinja2 are available on the system.
+NOTE: JFIT-ZTP relies on external modules downloaded by the freeZTP installer. If not already installed, ensure that both **requests and jinja2** are available on the system.
 1. Log in with same account that ZTP is running under
 2. Elevate your permissions
    1. `sudo su`
-3. Install PyInputPlus (Used for setup wizard only.)
-   1. `pip install pyinputplus`
-4. Edit PyInputPlus module (Only if running python 2.7 (default for current ZTP version))
-    1.  Use Nano or vi to edit `/usr/local/lib/python2.7/dist-packages/pyinputplus/__init__.py`
-    2.  Go to line 134
-    3.  Change `(prompt, str)` to `(prompt, (str, unicode))`
-    4.  Go to line 156
-    5.  Change `input()` to `raw_input()`
-5. Directly copy files to ZTP server or clone GitHub repo (shown)
+3. Directly copy files to ZTP server or clone GitHub repo (shown)
    1. `git clone https://github.com/pschapman/jfit-ztp`
-6. Change working directory to jfit-ztp
+4. Change working directory to jfit-ztp
    1. `cd jfit-ztp`
-7. Run JFIT-ZTP setup
-   1. `python jfit-ztp.py -s` or `python jfit-ztp.py --setup`
-8.  Carefully read prompts and answer accurately
-   2. Provide your API Key
-   3. Select Form that is used for this project from list
-   4. Input delimiter for compound answers
-   5. Select CSV or CLI execution mode from list
-   6. Input JotForm Default Answer
-   7. As prompted, create a sample submission for your form
-   8. Select sample submission from list
-   9. Select whether Association (template) data will come from Jotform
-   10. Select answer in submission that contains the keystore ID (hostname)
-   11. Select whether ZTP will be building stacks
-   12. Select answer for each stack member that contains the device ID (idarray)
-   13. Select whether additional Custom Variables should be mapped
-9.  Configure JFIT-ZTP to run as a cron job
+5. Run JFIT-ZTP setup
+   1. `python3 jfit_ztp.py -s` or `python jfit_ztp.py --setup`
+6. Use Menu-based setup
+   1. Minimum Required Configuration
+      1. JotForm API Key and Form ID
+      2. freeZTP Keystore Type (CLI or CSV). Defaults to CLI
+      3. Jotform Answer Mappings
+         1. Download sample submission
+         2. Set Keystore ID and ID Array mappings
+   2. Optional Configurations
+      1. Change maximum stack size. Defaults to 1
+      2. Set custom variable mappings
+      3. Set custom delimiter for compound answers. Defaults to ":"
+      4. set custom null answer. Defaults to "Select From List"
+      5. Configure Cisco WebEx Teams notifications via Bot
+      6. Configure Webhook based notifications
+7.  Configure JFIT-ZTP to run as a cron job
     1.  `crontab -e`
-    2.  Add: `* * * * * cd /<path>/jfit-ztp && python jfit-ztp.py`
+    2.  Add: `* * * * * cd /<path>/jfit-ztp && python3 jfit_ztp.py`
     3.  Save update and exit
     4.  Restart cron service: `systemctl restart cron`
     5.  **NOTE:** Once per minute is recommended for active implementation.
     6.  **WARNING:** JotForm limits API calls per day, so verify you will not exceed your limit before configuring your cron job.
 
-## Open Issues for v0.9.4 Beta
-- Python 2.7 imports JSON data fields as unicode strings.  This causes a vaidation issue on the "prompt" in PyInputPlus.  **Workaround** is to hack PyInputPlus, adding unicode as a valid class for the prompt field. (See install instructions above.)
-- Native input() function in Python 2.7 expects an expression or function, and not a user input string. raw_input() in 2.7 is equivalent to input() in 3.x.  PyInputPlus uses the 3.x style.  **Workaround** is to hack PyInputPlus, changing input() to raw_input(). (See install instructions above.)
-- Likely issue when running setup. Issue is in get_form_id().  If only 1 form returned, then PyInputPlus may error out. **Workaround** by adding a second form to JotForm.
-- Questions that are hidden in JotForm may send no `answer`.  This causes an unhandled error in `get_answer_element`. **Workaround** is to disable "clear hidden items" and to dynamically hide questions using conditions in JotForm. This ensures that the default answer (null answer) is stored on submission.
+## Open Issues for v2.0.1
+- Some functions need additional refactoring in worker and shared modules. (Variable names and other minor inconsistencies.)
+- Refactor some functions in setup to be more DRY compliant.
+- Module DocStrings need update
+- WebEx Integrations and Webhooks require additional testing
 
 ## Future features
-- Full rewrite of setup routine.
-  - Improved menu system.
-  - Additional automation to remove manual setup steps.
-  - **Note**: In current version running setup additional times will update all fields, but will not remove mappings that no longer apply.  **Workaround** by deleting datamap.json and run setup from the beginning.
-- Abandon Python 2 support.
+- Test automation on Git
+- Module buildout for publication on PyPi
+- Automate manual installation steps
+  - Installation of external modules
+  - Configuration of cron job
 - Notifications integration to Slack using webhook.
 
 ## Change Log
-- 0.9 Beta - Initial release
-- 0.9.2 Beta
+- **2.0.1 - 2022/03/30**
+  - Main executable renamed "jfit_ztp.py" to match PEP style guides.
+  - Completely refactored from monolithic script to Python Package style.
+    - Fully linted with Pylint and Pylance
+  - Setup completely rewritten. New method is completely menu driven instead of Wizard.
+    - Answer mappings can be entirely wiped from setup instead of deleting json config file.
+  - Changes to Answer mapping schema.  Update requires config rebuild.
+- **0.9.4 Beta**
+  - Added simple notifications integration for MS Teams via Power Automate. JFIT-ZTP will send a JSON formatted message to a Power Automate flow using the "When a HTTP request is received" trigger.  Power Automate can then process the message and deliver to the appropriate MS Teams room.
+- **0.9.3 Beta**
+  - Altered update logic to automatically clear fields that have the Null Answer in the JotForm submission.  For CLI style, JFIT-ZTP now issues `ztp clear` commands as needed.  For CSV style, JFIT-ZTP will clear any data from the appropriate field.
+  - Added simple WebEx Teams notification feature.  Add your Bot Token and room during setup. Mardown file with sample added to Git Repo under documentation.
+  - Fixed bug in dict_to_q_menu that occurs when JotForm returns non-contiguous numeric values in answer set.  Occurs when questions are removed from JotForm.
+- **0.9.2 Beta**
   - Realized error in trying to manually parse CLI arguments.  Switched to ArgParse native module.  Setup now uses -s / --setup arguments.
   - File and console logging added.  File logging is 'Info' by default (changable in code).  Console logging is disabled by default and can be enabled with -v and -d options, meaning verbose (Info) and debug respectively.
   - Fixed logic error regarding delimiters in get_answer_element.
   - Updated install instructions in readme.
-- 0.9.3 Beta
-  - Altered update logic to automatically clear fields that have the Null Answer in the JotForm submission.  For CLI style, JFIT-ZTP now issues `ztp clear` commands as needed.  For CSV style, JFIT-ZTP will clear any data from the appropriate field.
-  - Added simple WebEx Teams notification feature.  Add your Bot Token and room during setup. Mardown file with sample added to Git Repo under documentation.
-  - Fixed bug in dict_to_q_menu that occurs when JotForm returns non-contiguous numeric values in answer set.  Occurs when questions are removed from JotForm.
-- 0.9.4 Beta
-  - Added simple notifications integration for MS Teams via Power Automate. JFIT-ZTP will send a JSON formatted message to a Power Automate flow using the "When a HTTP request is received" trigger.  Power Automate can then process the message and deliver to the appropriate MS Teams room.
+- **0.9 Beta - Initial release**

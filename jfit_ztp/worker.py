@@ -8,8 +8,7 @@ import json
 import csv
 import subprocess
 
-# External modules. Installed by freeztpInstaller.
-# from jinja2 import Template as jinja
+# External modules
 
 # Private modules
 from . import shared
@@ -131,7 +130,7 @@ def update_csv_data(csv_data, headers, keystore_id, csv_update):
 
         data.update({key: value})
         csv_data.update({keystore_id.upper(): data})
-        log.debug('Updating "%s as %d for %s.', key, value, keystore_id)
+        log.debug('Updating "%s as %s for %s.', key, value, keystore_id)
 
     return headers, csv_data
 
@@ -150,32 +149,32 @@ def submission_to_cli(config, answer_set): # ans_set, data_map):
     cmd_set = []
     device_id_set = []
 
-    # ex. {"keystore_id": {"qID": "4", "index": 1}}
+    # ex. {"keystore_id": {"a_id": "4", "a_idx": 1}}
     data_map = config['data_map']
 
     # value = data_map['keystore_id']
-    # q_id = answer_set[value['qID']]
-    # ans_idx = value['index']
+    # q_id = answer_set[value['a_id']]
+    # ans_idx = value['a_idx']
     # keystore_id = get_answer_element(q_id, ans_idx)
     # log.info('Processing submission for Keystore ID: %s', keystore_id)
 
     for key, value in data_map.items():
-        q_id = answer_set[value['qID']]
-        ans_idx = value['index']
+        q_id = answer_set[value['a_id']]
+        ans_idx = value['a_idx']
         if 'keystore_id' in key:
             keystore_id = shared.get_answer_element(config, q_id, ans_idx)
             log.info('Processing submission for Keystore ID: %s', keystore_id)
             # continue
         elif 'idarray' in key:
-            # q_id = answer_set[value['qID']]
-            # ans_idx = value['index']
+            # q_id = answer_set[value['a_id']]
+            # ans_idx = value['a_idx']
             device_id = shared.get_answer_element(config, q_id, ans_idx)
             if device_id:
                 device_id_set.append(device_id)
                 log.debug('Device ID: %s',  device_id)
         elif 'association' in key:
-            # q_id = answer_set[value['qID']]
-            # ans_idx = value['index']
+            # q_id = answer_set[value['a_id']]
+            # ans_idx = value['a_idx']
             var_data = shared.get_answer_element(config, q_id, ans_idx)
             if var_data:
                 cmd_set.append('ztp set association id ' + keystore_id
@@ -185,8 +184,8 @@ def submission_to_cli(config, answer_set): # ans_set, data_map):
                 # Default answer. Clear old association, if present.
                 cmd_set.append('ztp clear association ' + keystore_id)
         else:
-            # q_id = answer_set[value['qID']]
-            # ans_idx = value['index']
+            # q_id = answer_set[value['a_id']]
+            # ans_idx = value['a_idx']
             var_data = shared.get_answer_element(config, q_id, ans_idx)
             var_name = key
             if var_data:
@@ -221,40 +220,40 @@ def submission_to_csv(config, answer_set, headers, csv_data): #, data_map, heade
             keystore_id (str): ID value, typically device hostname
     """
     import_unknown = config['import_unknown']
-    # ex. {"keystore_id": {"qID": "4", "index": 1}}
+    # ex. {"keystore_id": {"a_id": "4", "a_idx": 1}}
     data_map = config['data_map']
     # Create empty change list
     csv_update = {}
 
     # value = data_map['keystore_id']
-    # q_id = ans_set[value['qID']]
-    # ans_idx = value['index']
+    # q_id = ans_set[value['a_id']]
+    # ans_idx = value['a_idx']
     # keystore_id = get_answer_element(q_id, ans_idx)
     # log.info('Processing submission for Keystore ID: %s',  keystore_id)
 
     for key, value in data_map.items():
-        q_id = answer_set[value['qID']]
-        ans_idx = value['index']
+        q_id = answer_set[value['a_id']]
+        ans_idx = value['a_idx']
         if 'keystore_id' in key:
             keystore_id = shared.get_answer_element(config, q_id, ans_idx)
             log.info('Processing submission for Keystore ID: %s',  keystore_id)
             # continue
         else:
-            # q_id = ans_set[value['qID']]
-            # ans_idx = value['index']
+            # q_id = ans_set[value['a_id']]
+            # ans_idx = value['a_idx']
             # If func returns None, then CSV field will be cleared.
             var_data = shared.get_answer_element(config, q_id, ans_idx)
             var_name = key
             # if var_data:
             #     csv_update.update({var_name: var_data})
             csv_update.update({var_name: var_data})
-            log.debug('Variable Name: %s\tValue: %d', var_name, var_data)
+            log.debug('Variable Name: %s\tValue: %s', var_name, var_data)
 
     # Create partial entry if Import Unknown is enabled
     if keystore_id.upper() not in csv_data and import_unknown:
         csv_data.update({keystore_id.upper(): {'keystore_id': keystore_id}})
         log.warning('Unknown ID, %s, added to external keystore. Incomplete'
-                    'data may cause merge issues.', keystore_id)
+                    ' data may cause merge issues.', keystore_id)
 
     # Skip item otherwise. Return unchanged data to calling code.
     elif keystore_id.upper() not in csv_data and not import_unknown:

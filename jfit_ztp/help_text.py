@@ -129,73 +129,107 @@ HELP_WEBHOOK_URL_MENU = '''
     are found in template_text.py with addition comments / instructions.
  ========================================================================
 '''
+HELP_DATAMAP_MAIN_MENU = '''
+ ==============================DATA MAPPING==============================
+  Core functionality of JFIT-ZTP: Mapping Jotform answers to ZTP config.
 
+  Stack Size
+    Defines number of ID Array mappings available.
+  Update Sample Submission
+    Downloads sample dataset and stores locally.
+  Set [item] Mappings
+    Map Jotform answers to ZTP usable variables.
+ ========================================================================
+'''
+HELP_STACK_SIZE_QUESTION = '''
+ ============================SWITCH STACKING=============================
+  freeZTP was built as a general purpose imaging system. For switch
+  stacks, multiple IDs (serial numbers) can be assigned to the Keystore
+  ID (idarray). This allows for proper device ID regardless of boot
+  order.
 
-# INFO_SAMPLE_SUBMISSION = '''
-#  ===========================SAMPLE SUBMISSION============================
-#   Setup needs a sample JotForm submission to map answers to freeZTP
-#   configuration commands / external keystore entries.\r\n
-#   *** PLEASE CREATE AND SUBMIT A FORM NOW ***
-#   *** FILL OUT ALL ANSWERS - LEAVE NO DEFAULT ***\r\n
-#   The submission ID will show in the url on the "Thank You" page.
-#   Ex: https://submit.jotform.com/submit/<15 digit #>\r\n
-#   Hit <enter> when ready to view list of forms.
-#  ========================================================================
-# '''
-# INFO_KEYSTORE_ID = '''
-#  ==============================KEYSTORE ID===============================
-#   Select the answer to map to the Keystore ID
-#   The Keystore ID in freeZTP is the common index value between ID Array
-#   data, keystore values, and template associations. When using JotForm
-#   with freeZTP the Keystore ID is likely to correspond with the hostname.
-#  ========================================================================
-# '''
-# INFO_ASSOCIATION = '''
-#  =============================ASSOCIATION ID=============================
-#   (OPTIONAL) Will JotForm provide the Association ID Value?
-#   The Association ID in freeZTP is mapping of a configuration template to
-#   a specific Keystore ID. If no association is specified, freeZTP will
-#   use its default value. RECOMMENDATIONS:
-#   - CLI Mode: Use freeZTP default value for single template cases. Use
-#     JotForm answer mapping when using freeZTP to image multiple platforms
-#     (e.g. routers & switches) and/or multiple roles (e.g. core & edge).
-#   - CSV Mode: Create "association" column in the external keystore and
-#     enter the appropriate field value when pre-loading other data.
-#  ========================================================================
-# '''
-# INFO_SWITCH_STACKS = '''
-#  ============================SWITCH STACKING=============================
-#   (OPTIONAL) Will this ZTP instance build switch stacks?
-#   freeZTP was built as a general purpose imaging system. For switch
-#   stacks, multiple IDs (serial numbers) can be assigned to the Keystore
-#   ID (idarray). This allows for proper device ID regardless of boot
-#   order. If "no" is selected, setup will prompt for one (1) serial number
-#   mapping. If "yes" is selected, setup will ask for a maximum stack size,
-#   then prompt to map each position.\r\n
-#   NOTE: If building mixed-model stacks it is recommended that you include
-#   the model information with each serial using the delimiter.'
-#   FUN FACTS:
-#   1. ID array data is shared with the Jinja2 engine as idarray_x in the
-#      order they show up. This can be used for automatic stack re-ordering
-#      with EEM scripts.  See sample on the freeZTP GitHub site.
-#   2. If building mixed-model stacks, adding model information as a Custom
-#      Variable can allow for pre-population of port configurations before
-#      member switches join the stack. (switch <#> provision <model>
-#      Simplest setup places serial and model in same answer and separated
-#      by the delimiter (e.g. <serial> : <model>)
-#  ========================================================================
-# '''
-# INFO_CUSTOM_VARIABLES = '''
-#  ============================CUSTOM VARIABLES============================
-#   (OPTIONAL) Define Custom Variables
-#   Custom variables are mapped from JotForm to freeZTP commands / external
-#   keystore fields in the exact same way as other mappings. The difference
-#   is that custom variable names are your choice.
-#   RESTRICTION: BLANK SPACES ARE NOT ALLOWED IN CUSTOM VARIABLE NAMES\r\n
-#   Examples:
-#   - model1, model2, modelx: Possible use for mixed-model stacks
-#   - snmp_loc: Insert device meta-data in snmp location
-#  ========================================================================
+  Default Stack Size: 1 / Maximum Stack Size: 8
+ ========================================================================
+'''
+HELP_SUBMISSION_SELECTOR = '''
+ ===========================SAMPLE SUBMISSION============================
+  Setup uses a sample JotForm submission to map answers to keystore data.
+
+  *** PLEASE CREATE AND SUBMIT A FORM NOW ***
+  *** FILL OUT ALL ANSWERS - LEAVE NO DEFAULT ***
+  Hit <enter> when ready to view list of forms.
+ ========================================================================
+'''
+FAIL_SUBMISSION_SELECTOR = '''
+ ============================ FAILURE ===================================
+                     NO SUBMISSIONS FOUND!
+  1) Submit another form and try again.
+  2) Verify submission went to the correct JotForm.
+  3) Re-run "Test JotForm Key and Connection". Update as needed.
+
+  Debug information above this message.
+ ============================ FAILURE ===================================
+'''
+HELP_DATAMAP_MANDATORY_MENU = '''
+ =========================MANDATORY DATA MAPPING=========================
+  Data mappings for Keystore ID and ID Array. Available data slots based
+  on Stack Size configuration.
+
+  Keystore ID
+    The Keystore ID in freeZTP is the common index value between ID Array
+    data, keystore values, and template associations. When using JotForm
+    with freeZTP the Keystore ID is likely to correspond with the
+    hostname.
+  ID Array
+    One or more unique IDs passed from device to ZTP which can be mapped
+    to a specific Keystore ID.  Typically device serial. In stacks, all
+    serials can be used to map to the same Keystore ID.
+
+    NOTE: If building mixed-model stacks, you should include the model
+    information with each serial using the delimiter for custom variables.
+
+    FUN FACTS:
+    1. ID array data is shared with the Jinja2 engine as idarray_x in the
+      order they show up. This can be used for automatic stack re-ordering
+      with EEM scripts.  See sample on the freeZTP GitHub site.
+    2. If building mixed-model stacks, adding model information as a Custom
+      Variable can allow for pre-population of port configurations before
+      member switches join the stack. (switch <#> provision <model>)
+      Simplest setup places serial and model in same answer and separated
+      by the delimiter (e.g. <serial> : <model>)
+ ========================================================================
+'''
+HELP_DATAMAP_CUSTOM_MENU = '''
+ ==========================CUSTOM DATA MAPPING===========================
+  (OPTIONAL) Define Custom Variables
+  Custom variables are mapped from JotForm to freeZTP commands / external
+  keystore fields in the exact same way as other mappings. The difference
+  is that custom variable names are your choice.
+
+  RESTRICTION: BLANK SPACES ARE NOT ALLOWED IN CUSTOM VARIABLE NAMES
+
+  Examples:
+  - model1, model2, modelx: Possible use for mixed-model stacks
+  - snmp_loc: Insert device meta-data in snmp location
+ ========================================================================
+'''
+INFO_ASSOCIATION = '''
+ =============================ASSOCIATION ID=============================
+  The Association ID in freeZTP is mapping of a configuration template to
+  a specific Keystore ID. If no association is specified, freeZTP will
+  use its default value.
+
+  RECOMMENDATIONS:
+
+  CLI Mode
+    Use freeZTP default value for single template cases. Use
+    JotForm answer mapping when using freeZTP to image multiple platforms
+    (e.g. routers & switches) and/or multiple roles (e.g. core & edge).
+  CSV Mode
+    Create "association" column in the external keystore and
+    enter the appropriate field value when pre-loading other data.
+ ========================================================================
+'''
 # '''
 # INFO_x = '''
 #  '========================================================================

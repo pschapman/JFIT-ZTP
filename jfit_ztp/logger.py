@@ -3,7 +3,7 @@ Configures logging for all modules.
     Parameters:
         log_file (str): Relative or absolute path
         file_level (int): Logging level for file output
-        consol_level (int): Logging level for console output
+        console_level (int): Logging level for console output
     Returns:
         None
 
@@ -23,7 +23,7 @@ def init_logging(log_file, file_level, console_level=None):
             console_level = Logging level for console logging
     """
     # Create logger object
-    log = logging.getLogger('default')
+    log = logging.getLogger()
     log.setLevel(logging.DEBUG)
     # Create formatter
     formatter = logging.Formatter('%(asctime)s.%(msecs)03d %(levelname)s:'

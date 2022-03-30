@@ -9,7 +9,7 @@ from os import path
 import json
 from urllib.parse import quote
 
-# External modules. Installed by freeztpInstaller.
+# External modules
 import requests
 from jinja2 import Template as jinja
 
@@ -38,16 +38,18 @@ def init_empty_cfg():
               'bot_token': None,
               'room_id': None,
               'webhook_url': None,
+              'max_stack_size': 1,
               'data_map': {}}
     return config
 
-def dynamic_selector_menu(items, header = "MENU", quit_opt = False):
+def dynamic_selector_menu(items, header="MENU", quit_opt=False, prompt=None):
     """
     Presents simple selector menu to user and returns list item position.
         Parameters:
             items (list): Set of text strings (presented to user)
             header (str): Menu heading
-            quit_opt (bool): Enables / disables quit menu option.
+            quit_opt (bool): Optional. Enables / disables quit menu option.
+            prompt (str): Optional. Alternate user prompt.
         Returns:
             selection (int): Position value in original list 0..n
                 or
@@ -56,21 +58,23 @@ def dynamic_selector_menu(items, header = "MENU", quit_opt = False):
     if not items:
         return None
 
+    q_text = prompt if prompt else "Select an item: "
+
     # Build menu, options 1..n for list positions 0..x
-    menu_text = f'\t    {header}\r\n'
+    menu_text = f'         {header}\r\n'
     i = 1
     for item in items:
-        menu_text += f'\t{i}. {item}\r\n'
+        menu_text += f'    {i}. {item}\r\n'
         i += 1
 
     # Add quit option if enabled
     if quit_opt:
-        menu_text += '\tQ. Quit to Previous Menu\r\n'
+        menu_text += '    Q. Quit to Previous Menu\r\n'
 
     err_state = True
     while err_state:
         print(menu_text)
-        ans = input('Select an item: ')
+        ans = input(q_text)
 
         # User selected quit, return None
         if quit_opt and ans.lower() == 'q':
@@ -437,7 +441,345 @@ def save_config(config_file, config):
         json.dump(config, json_file, indent=4)
     print('Configuration saved to disk.')
 
-def main_menu(config_file, config): # pylint: disable=too-many-branches
+def read_sample(sample_file):
+    """
+    Read Jotform sample submission file, if present.
+        Parameters:
+            sample_file (str): Relative or absolute path.
+        Returns:
+            sample (dict): JSON data read into python
+            dwnld_state (str): Values 'Present' or 'Absent'
+    """
+    sample = None
+    dwnld_state = 'Absent'
+    if path.exists(sample_file):
+        dwnld_state = 'Present'
+        with open(sample_file, encoding='utf-8') as cfg_file:
+            sample = json.load(cfg_file)
+        log.debug('Imported configuration from file, %s',  sample_file)
+    else:
+        log.info('Unable to import configuration.')
+
+    return sample, dwnld_state
+
+def stack_size_question(config):
+    """
+    Configure stack size parameter. Impacts # of available ID Array mappings.
+        Parameters / Returns:
+            config (dict): Current configuration data
+    """
+    print(help_text.HELP_STACK_SIZE_QUESTION)
+    current = config['max_stack_size']
+    err_state = True
+    while err_state:
+        ans = input(f'Input max stack size. ([enter] for {current}): ')
+        fail = False
+        try:
+            i = int(ans)
+        except ValueError:
+            print(f'Input {ans} is not an integer.')
+            fail = True
+        if i not in range(1,9):
+            print(f'Input {ans} not in range of 1 to 8.')
+            fail = True
+        err_state = True if fail else False
+
+    config['max_stack_size'] = ans
+    return config
+
+def submission_selector(config, sample_file):
+    """
+    Obtain sample submission data. Save file and return data to calling code.
+        Parameters:
+            config (dict): Current configuration data
+        Returns:
+            sample (dict): JSON data read into python
+                ex. {'id': '<num str>, '<vars>': '<vals>', 'answers': {<dict>}}
+            dwnld_state (str): Values 'Present' or 'Absent'
+    """
+    print(help_text.HELP_SUBMISSION_SELECTOR)
+    _ = input('Hit [enter] after Form is submitted...')
+
+    sample = None
+    dwnld_state = 'Absent'
+    api_key = config['api_key']
+    form_id = config['form_id']
+    response = shared.get_new_submissions(api_key, form_id)
+
+    if (response.status_code == 200
+            and response.json()['resultSet']['count'] >= 1):
+        log.debug('Full Jotform Response (JSON):\r\n%s',
+                  json.dumps(response.json(), indent=4))
+
+        submission_ids = []
+        for submission in response.json()['content']:
+            submission_ids.append(submission['id'])
+
+        ans = dynamic_selector_menu(submission_ids, 'UNREAD SUBMISSIONS')
+        for submission in response.json()['content']:
+            if submission_ids[ans] == submission['id']:
+                sample = submission
+
+        if sample:
+            with open(sample_file, 'w', encoding='utf-8') as json_file:
+                json.dump(sample, json_file, indent=4)
+            dwnld_state = 'Present'
+
+    else:
+        print(response.status_code)
+        print(json.dumps(response.json(), indent=4))
+        print(help_text.FAIL_SUBMISSION_SELECTOR)
+
+    return sample, dwnld_state
+
+def build_select_data(sample):
+    """
+    Build list and dictionary for user selection
+        Parameters:
+            sample (dict): JotForm sample submission
+        Returns:
+            menu_opts (list): Set of string values (user options)
+            meta_list (list): Jotform Q IDs in order of menu options
+    """
+    menu_opts = None
+    meta_list = None
+    if sample:
+        answers = sample['answers']
+        menu_opts = []
+        meta_list = []
+
+        for q_id_num, inner_dict in answers.items():
+            q_text = inner_dict['text']
+            try:
+                a_text = inner_dict['answer']
+            except KeyError:
+                a_text = 'None'
+                continue
+
+            menu_opts.append(f'Q: {q_text} || A: {a_text}')
+            meta_list.append(q_id_num)
+
+    return menu_opts, meta_list
+
+def datamap_mapping_combo(config, sample, menu_opts, meta_list, var_name):
+    """
+    Generic process to map Keystore variables to JotForm Answers
+        Parameters:
+            var_name (str): keystore_id, idarray_x, <custom>
+            menu_opts (list): Items for user selection
+        Returns:
+            map_dict (dict): Answer mapping and actual question
+                ex. {q_text: 'My Question', a_id: 14, a_idx: 0}
+    """
+    print()
+    delim = config['delimiter']
+    answers = sample['answers']
+
+    h_text = 'AVAILABLE JOTFORM ANSWERS'
+    p_text = f'Select Item Containing "{var_name.upper()}": '
+    sel = dynamic_selector_menu(menu_opts, header=h_text,prompt=p_text)
+    a_id = meta_list[sel]
+    q_text = answers[a_id]['text']
+    a_text = answers[a_id]['answer']
+    if delim in a_text:
+        items = a_text.replace(f' {delim} ', delim).split(delim)
+        h_text = "DELIMITER SPLIT VALUES"
+        p_text = f'Select value for "{var_name.upper()}": '
+        a_idx = dynamic_selector_menu(items, header=h_text, prompt=p_text)
+    else:
+        a_idx = 0
+
+    map_dict = {'q_text': q_text, 'a_id': a_id, 'a_idx': a_idx}
+
+    return map_dict
+
+def build_mandatory_menu_data(data_map, mss):
+    """
+    Generates customized dictionary data for Jinja2 dynamic menu.
+        Parameters:
+            data_map (dict): Answers portion of Jotform sample submission
+            mss (int): Maximum Stack Size. Used for dynamic menu template.
+        Returns:
+            render_dict (dict): Display ready data for Jinja2 rendering
+    """
+    render_dict = {'mss': mss}
+    if 'keystore_id' in data_map.keys():
+        render_dict['k_id'] = data_map['keystore_id']
+    else:
+        render_dict['k_id'] = None
+
+    for i in range(1,9):
+        if f'idarray_{i}' in data_map.keys():
+            render_dict[f'id_arr{i}'] = data_map[f'idarray_{i}']
+        else:
+            render_dict[f'id_arr{i}'] = None
+
+    return render_dict
+
+def datamap_mandatory_menu(config, sample):
+    """
+    Keystore ID and ID Array mapping menu.
+        Parameters:
+            config (dict): Current configuration data
+            sample (dict): Jotform sample submission data
+        Returns:
+            config (dict): Updated configuration data
+    """
+    print(help_text.HELP_DATAMAP_MANDATORY_MENU)
+
+    mss = int(config['max_stack_size'])
+    menu_opts, meta_list = build_select_data(sample)
+    data_map = config['data_map']
+
+    err_state = True
+    while err_state:
+        var = None
+        # Update dynamic menu parts
+        render_dict = build_mandatory_menu_data(data_map, mss)
+        menu = jinja(menus.M_DATAMAP_MANDATORY).render(render_dict)
+        while '\n\n' in menu:
+            menu = menu.replace('\n\n', '\n')
+        print(menu)
+        selection = input('Select Menu Item: ')
+
+        if selection == '1':
+            var = 'keystore_id'
+        elif selection == '2':
+            var = 'idarray_1'
+        elif mss >= 2 and selection == '3':
+            var = 'idarray_2'
+        elif mss >= 3 and selection == '4':
+            var = 'idarray_3'
+        elif mss >= 4 and selection == '5':
+            var = 'idarray_4'
+        elif mss >= 5 and selection == '6':
+            var = 'idarray_5'
+        elif mss >= 6 and selection == '7':
+            var = 'idarray_6'
+        elif mss >= 7 and selection == '8':
+            var = 'idarray_7'
+        elif mss >= 8 and selection == '9':
+            var = 'idarray_8'
+        elif selection.lower() == 'h':
+            print(help_text.HELP_DATAMAP_MANDATORY_MENU)
+        elif selection.lower() == 'q':
+            err_state = False
+            config['data_map'] = data_map.copy()
+
+        if var:
+            args = (config, sample, menu_opts, meta_list, var)
+            map_dict = datamap_mapping_combo(*args)
+            data_map.update({var: map_dict})
+
+    return config
+
+def build_custom_menu_data(data_map):
+    """
+    Generates customized dictionary data for Jinja2 dynamic menu.
+        Parameters:
+            data_map (dict): Answers portion of Jotform sample submission
+        Returns:
+            render_data (list): Display ready data for Jinja2 rendering
+            var_list (list): Selection names for deltion option
+    """
+    render_data = ''
+    var_list = []
+    for var_name, var_info in data_map.items():
+        if 'idarray_' not in var_name and 'keystore_id' not in var_name:
+            render_data += (f"    {var_name}: {var_info['q_text']} |"
+                            + f" {var_info['a_id']} | {var_info['a_idx']}")
+            var_list.append(var_name)
+
+    return render_data, var_list
+
+def datamap_custom_menu(config, sample):
+    """
+    Custom variable mapping menu.
+        Parameters:
+            config (dict): Current configuration data
+            sample (dict): Jotform sample submission data
+        Returns:
+            config (dict): Updated configuration data
+    """
+    print(help_text.HELP_DATAMAP_CUSTOM_MENU)
+
+    menu_opts, meta_list = build_select_data(sample)
+    data_map = config['data_map']
+
+    err_state = True
+    while err_state:
+        var = None
+        # Update dynamic menu parts
+        render_data, var_list = build_custom_menu_data(data_map)
+        menu = jinja(menus.M_DATAMAP_CUSTOM).render(settings=render_data)
+        print(menu)
+        selection = input('Select Menu Item: ')
+
+        if selection == '1':
+            var = input('Input Custom Variable Name (No spaces): ')
+            if not var or ' ' in var:
+                print('Incorrect data entry. Try again.')
+                var = None
+        elif selection == '2':
+            ans = dynamic_selector_menu(var_list, 'CUSTOM VARIABLES')
+            if ans is not None:
+                data_map.pop(var_list[ans], None)
+        elif selection.lower() == 't':
+            print(help_text.INFO_ASSOCIATION)
+            var = 'association'
+        elif selection.lower() == 'h':
+            print(help_text.HELP_DATAMAP_CUSTOM_MENU)
+        elif selection.lower() == 'q':
+            err_state = False
+            config['data_map'] = data_map.copy()
+
+        if var:
+            args = (config, sample, menu_opts, meta_list, var)
+            map_dict = datamap_mapping_combo(*args)
+            data_map.update({var: map_dict})
+
+    return config
+
+def datamap_main_menu(config):
+    """
+    Webhook Notifications configuration menu.
+        Parameters / Returns:
+            config (dict): Current configuration data
+    """
+    print(help_text.HELP_DATAMAP_MAIN_MENU)
+    sample_file = 'datasample.json'
+    sample, dwnld_state = read_sample(sample_file)
+    err_state = True
+    while err_state:
+        # Update dynamic menu parts
+        menu = jinja(menus.M_DATAMAP_MAIN).render(
+            mss = int(config['max_stack_size']),
+            sample_state = dwnld_state
+        )
+        print(menu)
+        selection = input('Select Menu Item: ')
+
+        if selection == '1':
+            config = stack_size_question(config)
+        elif selection == '2':
+            sample, dwnld_state = submission_selector(config, sample_file)
+            _ = shared.mark_submissions_read(config['api_key'], [sample['id']])
+        elif selection == '3':
+            config = datamap_mandatory_menu(config, sample)
+        elif selection == '4':
+            config = datamap_custom_menu(config, sample)
+        elif selection.lower() == 'x':
+            ans = input('Are you sure? (y/N): ')
+            if ans.lower() == 'y':
+                config['data_map'] = {}
+        elif selection.lower() == 'h':
+            print(help_text.HELP_DATAMAP_MAIN_MENU)
+        elif selection.lower() == 'q':
+            err_state = False
+
+    return config
+
+def main_menu(config_file, config):
     """
     Main Control Menu. All setup controlled from here.
         Parameters / Returns:
@@ -461,15 +803,15 @@ def main_menu(config_file, config): # pylint: disable=too-many-branches
         elif selection == '2':
             config = keystore_config_menu(config)
         elif selection == '3':
-            config = delimiter_question(config)
+            config = datamap_main_menu(config)
         elif selection == '4':
-            config = null_answer_question(config)
+            config = delimiter_question(config)
         elif selection == '5':
-            config = webex_menu(config)
+            config = null_answer_question(config)
         elif selection == '6':
-            config = webhook_url_menu(config)
+            config = webex_menu(config)
         elif selection == '7':
-            print()
+            config = webhook_url_menu(config)
         elif selection.lower() == 's':
             save_config(config_file, config)
         elif selection.lower() == 'q':
@@ -489,76 +831,6 @@ def setup(config_file, test_mode): # pylint: disable=unused-argument
         cfg = init_empty_cfg()
 
     main_menu(config_file, cfg)
-
-    # # Get sample data set for key map Q&A
-    # sample_data = get_sample_submission(api_key, form_id)
-    # ans_set = sample_data['answers']
-    # ans_menu = dict_to_q_menu(ans_set)
-
-    # # Get old data map settings to offer reusable config
-    # data_map = cfg['data_map'] if cfg else {}
-
-    # Begin key map Q&A
-    # print(prompts.INFO_KEYSTORE_ID)
-    # ztp_var = 'keystore_id'
-    # old_vals = get_old_vals(data_map, [ztp_var], ans_set)
-    # if old_vals:
-    #     ans_ords = old_vals[0]
-    # else:
-    #     prompt = 'Choose item that has value for ' + ztp_var + '? > \r\n'
-    #     ans_ords = get_ordinals(ans_set, ans_menu, ztp_var, prompt)
-    # data_map.update({ztp_var: ans_ords})
-
-    # print(prompts.INFO_ASSOCIATION)
-    # ztp_var = 'association'
-    # prompt = 'Will this JotForm provide a template association? (y/N) > '
-    # response = pyip.inputYesNo(prompt=prompt, blank=True)
-    # if response == 'yes':
-    #     old_vals = get_old_vals(data_map, [ztp_var], ans_set)
-    #     if old_vals:
-    #         ans_ords = old_vals[0]
-    #     else:
-    #         prompt = 'Choose item that has value for ' + ztp_var + '? > \r\n'
-    #         ans_ords = get_ordinals(ans_set, ans_menu, ztp_var, prompt)
-    #     data_map.update({ztp_var: ans_ords})
-
-    # print(prompts.INFO_SWITCH_STACKS)
-    # prompt = 'Will this ZTP instance provision switch stacks? (Y/n) > '
-    # response = pyip.inputYesNo(prompt=prompt, blank=True)
-    # stack_max = 1
-    # if response == 'yes' or not response:
-    #     prompt = 'What is the maximum stack size? (default is 8) > '
-    #     stack_max = pyip.inputNum(prompt=prompt, min=1, max=9, blank=True)
-    #     stack_max = 8 if not stack_max else stack_max
-    # for index in range(stack_max):
-    #     ztp_var = 'idarray' + '_' + str(index + 1)
-    #     old_vals = get_old_vals(data_map, [ztp_var], ans_set)
-    #     if old_vals:
-    #         ans_ords = old_vals[0]
-    #     else:
-    #         prompt = 'Choose item that has value for ' + ztp_var + '? > \r\n'
-    #         ans_ords = get_ordinals(ans_set, ans_menu, ztp_var, prompt)
-    #     data_map.update({ztp_var: ans_ords})
-
-    # print(prompts.INFO_CUSTOM_VARIABLES)
-    # prompt = 'Map a Custom Variable? (y/N) > '
-    # done = None
-    # while not done:
-    #     response = pyip.inputYesNo(prompt=prompt, blank=True)
-    #     if response == 'no' or not response:
-    #         done = True
-    #     else:
-    #         prompt = 'Specify variable name. > '
-    #         regex = [(r'\ ', 'Spaces not allowed.')]
-    #         ztp_var = pyip.inputStr(prompt=prompt, blockRegexes=regex)
-    #         old_vals = get_old_vals(data_map, [ztp_var], ans_set)
-    #         if old_vals:
-    #             ans_ords = old_vals[0]
-    #         else:
-    #             prompt = 'Which answer contains the value for ' + ztp_var + '? > \r\n'
-    #             ans_ords = get_ordinals(ans_set, ans_menu, ztp_var, prompt)
-    #         data_map.update({ztp_var: ans_ords})
-    #     prompt = 'Map another Custom Variable? (y/N) > '
 
     # # print('Config File Contents:\r\n' + json.dumps(new_config, indent=4))
 

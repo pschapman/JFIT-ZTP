@@ -8,7 +8,7 @@ import json
 from urllib.parse import quote
 import socket
 
-# External modules. Installed by freeztpInstaller.
+# External modules
 import requests
 from jinja2 import Template as jinja
 
