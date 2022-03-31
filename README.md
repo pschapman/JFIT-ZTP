@@ -44,7 +44,6 @@ These have been tested so far.  Install instructions based on tested platforms.
 
 ## Installation
 This procedure assumes that you have already installed freeZTP and it is running as expected.
-NOTE: JFIT-ZTP relies on external modules downloaded by the freeZTP installer. If not already installed, ensure that both **requests and jinja2** are available on the system.
 1. Log in with same account that ZTP is running under
 2. Elevate your permissions
    1. `sudo su`
