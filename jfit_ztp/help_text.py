@@ -1,4 +1,7 @@
-"""Help Text for Setup Wizard"""
+#!/usr/bin/env python3
+"""
+Setup help text
+"""
 HELP_JOTFORM_MENU = '''
  ============================JOTFORM API KEY=============================
   Provide your JotForm API key.  Key must have "Full Access" permissions.

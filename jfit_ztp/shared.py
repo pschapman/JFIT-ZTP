@@ -1,4 +1,7 @@
-""" blah """
+#!/usr/bin/env python3
+"""
+Functions used by multiple modules.
+"""
 
 # Python native modules
 from os import path

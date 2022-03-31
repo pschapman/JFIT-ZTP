@@ -1,5 +1,6 @@
+#!/usr/bin/env python3
 """
-Configures logging for all modules.
+Configures common logging for all modules.
     Parameters:
         log_file (str): Relative or absolute path
         file_level (int): Logging level for file output

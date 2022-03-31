@@ -1,4 +1,13 @@
-"""Notification Templates"""
+#!/usr/bin/env python3
+"""
+External notification templates with Jinja2 tags
+Read inline comments for usage notes.
+Items consumed / referenced by application:
+    WEBEX_SETUP_MSG
+    WEBEX_WORKER_MSG
+    WEBHOOK_SETUP_DICT
+    WEBHOOK_WORKER_DICT
+"""
 ##################@@## WEBEX TEAMS NOTIFICATIONS ###########################
 # (MANDATORY) This variable is consumed by setup.py
 # Shows all tags available for merge.

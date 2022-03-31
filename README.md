@@ -4,6 +4,7 @@
 - Converted to Python package style
 - Removed compatibility for Python 3.5 and earlier
 - Menu Driven Setup
+- Standalone template file for external notifications
 - [Mostly] PEP compliant
 
 ## Introduction
@@ -51,9 +52,12 @@ NOTE: JFIT-ZTP relies on external modules downloaded by the freeZTP installer. I
    1. `git clone https://github.com/pschapman/jfit-ztp`
 4. Change working directory to jfit-ztp
    1. `cd jfit-ztp`
-5. Run JFIT-ZTP setup
+5. Install required external modules (if not already installed)
+   1. `pip3 install Jinja2`
+   2. `pip3 install requests`
+6. Run JFIT-ZTP setup
    1. `python3 jfit_ztp.py -s` or `python jfit_ztp.py --setup`
-6. Use Menu-based setup
+7. Use Menu-based setup
    1. Minimum Required Configuration
       1. JotForm API Key and Form ID
       2. freeZTP Keystore Type (CLI or CSV). Defaults to CLI
@@ -67,7 +71,7 @@ NOTE: JFIT-ZTP relies on external modules downloaded by the freeZTP installer. I
       4. set custom null answer. Defaults to "Select From List"
       5. Configure Cisco WebEx Teams notifications via Bot
       6. Configure Webhook based notifications
-7.  Configure JFIT-ZTP to run as a cron job
+8.  Configure JFIT-ZTP to run as a cron job
     1.  `crontab -e`
     2.  Add: `* * * * * cd /<path>/jfit-ztp && python3 jfit_ztp.py`
     3.  Save update and exit
@@ -82,11 +86,11 @@ NOTE: JFIT-ZTP relies on external modules downloaded by the freeZTP installer. I
 - WebEx Integrations and Webhooks require additional testing
 
 ## Future features
-- Test automation on Git
-- Module buildout for publication on PyPi
 - Automate manual installation steps
   - Installation of external modules
   - Configuration of cron job
+- Test automation on Git
+- Module buildout for publication on PyPi
 - Notifications integration to Slack using webhook.
 
 ## Change Log
@@ -97,15 +101,16 @@ NOTE: JFIT-ZTP relies on external modules downloaded by the freeZTP installer. I
   - Setup completely rewritten. New method is completely menu driven instead of Wizard.
     - Answer mappings can be entirely wiped from setup instead of deleting json config file.
   - Changes to Answer mapping schema.  Update requires config rebuild.
-- **0.9.4 Beta**
+  - Standalone template file (`template_text.py`) for external notifications.  Contains comments and samples.  Baseline configuration should work for most deployments.
+- **0.9.4 Beta - 2021/05/29**
   - Added simple notifications integration for MS Teams via Power Automate. JFIT-ZTP will send a JSON formatted message to a Power Automate flow using the "When a HTTP request is received" trigger.  Power Automate can then process the message and deliver to the appropriate MS Teams room.
-- **0.9.3 Beta**
+- **0.9.3 Beta - 2021/04/11**
   - Altered update logic to automatically clear fields that have the Null Answer in the JotForm submission.  For CLI style, JFIT-ZTP now issues `ztp clear` commands as needed.  For CSV style, JFIT-ZTP will clear any data from the appropriate field.
   - Added simple WebEx Teams notification feature.  Add your Bot Token and room during setup. Mardown file with sample added to Git Repo under documentation.
   - Fixed bug in dict_to_q_menu that occurs when JotForm returns non-contiguous numeric values in answer set.  Occurs when questions are removed from JotForm.
-- **0.9.2 Beta**
+- **0.9.2 Beta - 2021/04/10**
   - Realized error in trying to manually parse CLI arguments.  Switched to ArgParse native module.  Setup now uses -s / --setup arguments.
   - File and console logging added.  File logging is 'Info' by default (changable in code).  Console logging is disabled by default and can be enabled with -v and -d options, meaning verbose (Info) and debug respectively.
   - Fixed logic error regarding delimiters in get_answer_element.
   - Updated install instructions in readme.
-- **0.9 Beta - Initial release**
+- **0.9 Beta - Initial release - 2021/04/03**

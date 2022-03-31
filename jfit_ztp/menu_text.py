@@ -1,4 +1,7 @@
-"""Menu Text for Setup"""
+#!/usr/bin/env python3
+"""
+Setup menu text with Jinja2 tags
+"""
 M_MAIN = '''
        CURRENT SETTINGS
     Jotform API Key: {{ api_key }}

@@ -1,6 +1,7 @@
+#!/usr/bin/env python3
 """
-Notes:
-    Python 3.6 or later
+User interactive application setup. Creates JotForm to ZTP variable mappings
+to be used by the main script process.
 """
 
 # Python native modules
@@ -831,18 +832,3 @@ def setup(config_file, test_mode): # pylint: disable=unused-argument
         cfg = init_empty_cfg()
 
     main_menu(config_file, cfg)
-
-    # # print('Config File Contents:\r\n' + json.dumps(new_config, indent=4))
-
-    # if not test_mode:
-    #     # Marking sample entry as read
-    #     response = mark_submissions_read(api_key, [sample_data['id']])
-    #     if response:
-    #         print('WARNING - FAILED TO MARK SAMPLE SUBMISSION AS READ.\r\n'
-    #             'Verify your API Key permissions before going into'
-    #             ' production.\r\n Your configuration has been saved.')
-    #         print(response.status_code)
-    #         print(json.dumps(response.json(), indent=4))
-    #     else:
-    #         print('Sample submission marked as read.')
-    # print('SETUP COMPLETE!')

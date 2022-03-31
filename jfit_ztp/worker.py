@@ -1,4 +1,7 @@
-""" blah """
+#!/usr/bin/env python3
+"""
+Main worker process.
+"""
 
 # Python native modules
 from os import path
@@ -43,18 +46,6 @@ def read_ext_keystore(ext_keystore_file):
                 counter += 1
             log.info('Read %d line(s) from external keystore.', counter)
 
-        # csv_path = open(ext_keystore_file, 'r', encoding='utf-8')
-        # reader = csv.DictReader(csv_path)
-        # headers = reader.fieldnames
-        # csv_data = {}
-        # counter = 0
-        # # Create dictionary wrapper keyed on keystore_id.
-        # for row in reader:
-        #     csv_data[row['keystore_id'].upper()] = row
-        #     counter += 1
-        # log.info('Read %d line(s) from external keystore.', counter)
-
-        # csv_path.close()
         log.debug('Imported external keystore from file, %s',  ext_keystore_file)
 
     else:
@@ -80,25 +71,11 @@ def write_ext_keystore(ext_keystore_file, headers, csv_data):
     with open(ext_keystore_file, 'w', newline='', encoding='utf-8') as csv_file:
         writer = csv.DictWriter(csv_file, fieldnames=headers)
         writer.writeheader()
-
         # Strip off dictionary wrapper and write data
         for value in csv_data.values():
             writer.writerow(value)
             counter += 1
         log.info('Wrote %d line(s) to external keystore.', counter)
-
-    # csv_path = open(ext_keystore_file, 'w', newline='', encoding='utf-8')
-
-    # writer = csv.DictWriter(csv_path, fieldnames=headers)
-    # writer.writeheader()
-
-    # # Strip off dictionary wrapper and write data
-    # for value in csv_data.values():
-    #     writer.writerow(value)
-    #     counter += 1
-    # log.info('Wrote %d line(s) to external keystore.', counter)
-
-    # csv_path.close()
 
 def update_csv_data(csv_data, headers, keystore_id, csv_update):
     """
@@ -152,29 +129,20 @@ def submission_to_cli(config, answer_set): # ans_set, data_map):
     # ex. {"keystore_id": {"a_id": "4", "a_idx": 1}}
     data_map = config['data_map']
 
-    # value = data_map['keystore_id']
-    # q_id = answer_set[value['a_id']]
-    # ans_idx = value['a_idx']
-    # keystore_id = get_answer_element(q_id, ans_idx)
-    # log.info('Processing submission for Keystore ID: %s', keystore_id)
-
     for key, value in data_map.items():
         q_id = answer_set[value['a_id']]
         ans_idx = value['a_idx']
+
         if 'keystore_id' in key:
             keystore_id = shared.get_answer_element(config, q_id, ans_idx)
             log.info('Processing submission for Keystore ID: %s', keystore_id)
             # continue
         elif 'idarray' in key:
-            # q_id = answer_set[value['a_id']]
-            # ans_idx = value['a_idx']
             device_id = shared.get_answer_element(config, q_id, ans_idx)
             if device_id:
                 device_id_set.append(device_id)
                 log.debug('Device ID: %s',  device_id)
         elif 'association' in key:
-            # q_id = answer_set[value['a_id']]
-            # ans_idx = value['a_idx']
             var_data = shared.get_answer_element(config, q_id, ans_idx)
             if var_data:
                 cmd_set.append('ztp set association id ' + keystore_id
@@ -184,8 +152,6 @@ def submission_to_cli(config, answer_set): # ans_set, data_map):
                 # Default answer. Clear old association, if present.
                 cmd_set.append('ztp clear association ' + keystore_id)
         else:
-            # q_id = answer_set[value['a_id']]
-            # ans_idx = value['a_idx']
             var_data = shared.get_answer_element(config, q_id, ans_idx)
             var_name = key
             if var_data:
@@ -220,16 +186,8 @@ def submission_to_csv(config, answer_set, headers, csv_data): #, data_map, heade
             keystore_id (str): ID value, typically device hostname
     """
     import_unknown = config['import_unknown']
-    # ex. {"keystore_id": {"a_id": "4", "a_idx": 1}}
     data_map = config['data_map']
-    # Create empty change list
     csv_update = {}
-
-    # value = data_map['keystore_id']
-    # q_id = ans_set[value['a_id']]
-    # ans_idx = value['a_idx']
-    # keystore_id = get_answer_element(q_id, ans_idx)
-    # log.info('Processing submission for Keystore ID: %s',  keystore_id)
 
     for key, value in data_map.items():
         q_id = answer_set[value['a_id']]
@@ -239,13 +197,9 @@ def submission_to_csv(config, answer_set, headers, csv_data): #, data_map, heade
             log.info('Processing submission for Keystore ID: %s',  keystore_id)
             # continue
         else:
-            # q_id = ans_set[value['a_id']]
-            # ans_idx = value['a_idx']
             # If func returns None, then CSV field will be cleared.
             var_data = shared.get_answer_element(config, q_id, ans_idx)
             var_name = key
-            # if var_data:
-            #     csv_update.update({var_name: var_data})
             csv_update.update({var_name: var_data})
             log.debug('Variable Name: %s\tValue: %s', var_name, var_data)
 
@@ -355,8 +309,6 @@ def process_data(config_file, test_mode):
         if restart_ztp:
             if cfg['keystore_type'] == 'csv' and csv_data:
                 # Test harness to write to alternate external keystore file
-                # if test_mode:
-                #     cfg['csv_path'] = cfg['csv_path'][:-4] + '2.csv'
                 write_ext_keystore(cfg['csv_path'], headers, csv_data)
             elif cfg['keystore_type'] == 'csv' and not csv_data:
                 log.warning('Referenced keystore empty (0 bytes) and Unknown '
