@@ -86,6 +86,59 @@ def get_new_submissions(api_key, form_id):
     # Error checking in calling code.
     return response
 
+def get_answer_element(config, answer_dict, ans_idx):
+    """
+    Extract answer string. (Or answer substring, if delimiter present.)
+        Parameters:
+            ans_dict (dict): Jotform response data for a question
+                ex. {'text': 'Question 2', 'answer': 'myserial : mymodel'}
+            ans_idx (int): Index of sub-answer. 1 for first/only, or n for
+            specific position with delimited string.
+        Returns:
+            sub_answer (str): Answer string or substring.
+    """
+    null_answer = config['null_answer']
+    delimiter = config['delimiter']
+    full_answer = answer_dict['answer']
+    split_answer = full_answer.split(delimiter)
+    sub_answer = None
+
+    log.debug('Full Answer Text from JotForm: %s',  full_answer)
+
+    if ans_idx + 1 > len(split_answer) and full_answer != null_answer:
+        log.warning('JotForm answer has %d elements. Data map looking for'
+                    ' value in element %d. Possible delimiter mismatch'
+                    ' or Data Map is wrong. Re-run setup to alter Data Map.',
+                    len(split_answer), (ans_idx + 1))
+
+    elif full_answer != null_answer:
+        answer_element = full_answer.split(delimiter)[int(ans_idx)]
+        sub_answer = answer_element.strip()
+        log.debug('Parsed "%s" from full answer.', answer_element)
+
+    else:
+        log.debug('Null answer found. Nothing returned to calling code.')
+
+    return sub_answer
+
+
+def build_merge_data(cfg, ks_id=None, sub_id=None):
+    """
+    Creates special dictionary for notification Jinja2 merges. Contains both
+    configuration plus additional useful fields.
+        Parameters:
+            cfg (dict): Current configuration data
+            ks_id (str): Keystore ID (typically hostname)
+            sub_id (str): Jotform submission ID
+        Returns:
+            merge_dict (dict): Combined items + uniques defined here
+    """
+    merge_dict = cfg.copy()
+    merge_dict['keystore_id'] = ks_id
+    merge_dict['submission_id'] = sub_id
+    merge_dict['host_fqdn'] = (socket.getfqdn().lower())
+    return merge_dict
+
 def send_webex_msg(merge_dict, template):
     """
     Query JotForm for new Submissions
@@ -162,55 +215,3 @@ def mark_submissions_read(api_key, submission_ids):
 
     # Error checking in calling code.
     return err_state
-
-def get_answer_element(config, answer_dict, ans_idx):
-    """
-    Extract answer string. (Or answer substring, if delimiter present.)
-        Parameters:
-            ans_dict (dict): Jotform response data for a question
-                ex. {'text': 'Question 2', 'answer': 'myserial : mymodel'}
-            ans_idx (int): Index of sub-answer. 1 for first/only, or n for
-            specific position with delimited string.
-        Returns:
-            sub_answer (str): Answer string or substring.
-    """
-    null_answer = config['null_answer']
-    delimiter = config['delimiter']
-    full_answer = answer_dict['answer']
-    split_answer = full_answer.split(delimiter)
-    sub_answer = None
-
-    log.debug('Full Answer Text from JotForm: %s',  full_answer)
-
-    if ans_idx + 1 > len(split_answer) and full_answer != null_answer:
-        log.warning('JotForm answer has %d elements. Data map looking for'
-                    ' value in element %d. Possible delimiter mismatch'
-                    ' or Data Map is wrong. Re-run setup to alter Data Map.',
-                    len(split_answer), (ans_idx + 1))
-
-    elif full_answer != null_answer:
-        answer_element = full_answer.split(delimiter)[int(ans_idx)]
-        sub_answer = answer_element.strip()
-        log.debug('Parsed "%s" from full answer.', answer_element)
-
-    else:
-        log.debug('Null answer found. Nothing returned to calling code.')
-
-    return sub_answer
-
-def build_merge_data(cfg, ks_id=None, sub_id=None):
-    """
-    Creates special dictionary for notification Jinja2 merges. Contains both
-    configuration plus additional useful fields.
-        Parameters:
-            cfg (dict): Current configuration data
-            ks_id (str): Keystore ID (typically hostname)
-            sub_id (str): Jotform submission ID
-        Returns:
-            merge_dict (dict): Combined items + uniques defined here
-    """
-    merge_dict = cfg.copy()
-    merge_dict['keystore_id'] = ks_id
-    merge_dict['submission_id'] = sub_id
-    merge_dict['host_fqdn'] = (socket.getfqdn().lower())
-    return merge_dict
