@@ -176,9 +176,10 @@ def get_answer_element(config, answer_dict, ans_idx):
     """
     null_answer = config['null_answer']
     delimiter = config['delimiter']
-
     full_answer = answer_dict['answer']
     split_answer = full_answer.split(delimiter)
+    sub_answer = None
+
     log.debug('Full Answer Text from JotForm: %s',  full_answer)
 
     if ans_idx + 1 > len(split_answer) and full_answer != null_answer:
@@ -186,14 +187,12 @@ def get_answer_element(config, answer_dict, ans_idx):
                     ' value in element %d. Possible delimiter mismatch'
                     ' or Data Map is wrong. Re-run setup to alter Data Map.',
                     len(split_answer), (ans_idx + 1))
-        return None
 
-    sub_answer = None
-
-    if full_answer != null_answer:
+    elif full_answer != null_answer:
         answer_element = full_answer.split(delimiter)[int(ans_idx)]
-        log.debug('Parsed "%s" from full answer.', answer_element)
         sub_answer = answer_element.strip()
+        log.debug('Parsed "%s" from full answer.', answer_element)
+
     else:
         log.debug('Null answer found. Nothing returned to calling code.')
 

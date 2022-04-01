@@ -26,8 +26,7 @@ def read_ext_keystore(ext_keystore_file):
         Parameters:
             ext_keystore_file (str): Absolute or relative path
         Returns:
-            headers (list): Set of header values
-                ex. ['keystore_id', 'var_1', 'var_x']
+            headers (list): First row of CSV file
             csv_data (dict): Row data using 'keystore_id' as key value
                 ex. {'MYHOST': {'keystore_id': 'myhost', 'var': 'value'}}
     """
@@ -35,22 +34,19 @@ def read_ext_keystore(ext_keystore_file):
     csv_data = None
 
     if path.exists(ext_keystore_file):
+        log.debug('Importing external keystore file, %s',  ext_keystore_file)
         with open(ext_keystore_file, 'r', encoding='utf-8') as csv_file:
             reader = csv.DictReader(csv_file)
             headers = reader.fieldnames
             csv_data = {}
-            counter = 0
             # Create dictionary wrapper keyed on keystore_id.
             for row in reader:
                 csv_data[row['keystore_id'].upper()] = row
-                counter += 1
-            log.info('Read %d line(s) from external keystore.', counter)
-
-        log.debug('Imported external keystore from file, %s',  ext_keystore_file)
+            log.info('Read %d lines from external keystore.', reader.line_num)
 
     else:
-        log.warning('Referenced keystore is missing and execution mode is '
-                    'CSV. Create keystore file or re-run setup.')
+        log.warning('Keystore missing. Verify file and path. Current: %s',
+                    ext_keystore_file)
 
     return headers, csv_data
 
@@ -59,14 +55,13 @@ def write_ext_keystore(ext_keystore_file, headers, csv_data):
     Update external keystore fields / rows from JotForm Data
         Parameters:
             ext_keystore_file (str): Absolute or relative path
-            headers (list): Set of header values
-                ex. ['keystore_id', 'var_1', 'var_x']
+            headers (list): First row of CSV file
             csv_data (dict): Row data using 'keystore_id' as key value
                 ex. {'MYHOST': {'keystore_id': 'myhost', 'var': 'value'}}
         Returns:
             None
     """
-    counter = 0
+    i = 0
 
     with open(ext_keystore_file, 'w', newline='', encoding='utf-8') as csv_file:
         writer = csv.DictWriter(csv_file, fieldnames=headers)
@@ -74,17 +69,15 @@ def write_ext_keystore(ext_keystore_file, headers, csv_data):
         # Strip off dictionary wrapper and write data
         for value in csv_data.values():
             writer.writerow(value)
-            counter += 1
-        log.info('Wrote %d line(s) to external keystore.', counter)
+            i += 1
+        log.info('Wrote %d line(s) to external keystore.', i)
 
 def update_csv_data(csv_data, headers, keystore_id, csv_update):
     """
     Update row data
         Parameters:
             csv_data (dict): Row data using 'keystore_id' as key value
-                ex. {'MYHOST': {'keystore_id': 'myhost', 'var': 'value'}}
             headers (list): Set of header values
-                ex. ['keystore_id', 'var_1', 'var_x']
             keystore_id (str): ID value, typically device hostname
             csv_update (dict): var:data pairs to update csv_data entry
         Returns:
@@ -98,7 +91,7 @@ def update_csv_data(csv_data, headers, keystore_id, csv_update):
         # Only occurs if Import Unknown is enabled.
         if not headers:
             headers = ['keystore_id']
-            log.warning('Blank external keystore found. Creating keystore_id '
+            log.warning('Empty external keystore found. Creating keystore_id '
                         'header.')
         # Check CSV headers for variable. Add if needed.
         if key not in headers:
@@ -111,61 +104,80 @@ def update_csv_data(csv_data, headers, keystore_id, csv_update):
 
     return headers, csv_data
 
-def submission_to_cli(config, answer_set): # ans_set, data_map):
+def submission_to_cli(config, submission): # answer_set):
     """
     Generates ZTP CLI commands from JotForm Data
         Parameters:
             answer_set (dict): Set of answer dictionaries from Jotform
                 ex. {'1': {'text': 'Question 1', 'answer': 'myhostname'}}
-            config (dict): Full JFIT configuration
+            config (dict): Current configuration data
         Returns:
             cmd_set (list): Set of ZTP CLI commands to be issued.
                 ex. ['ztp set idarray <name> <serial>', 'another ztp command']
             keystore_id (str): ID value, typically device hostname
     """
+    answer_set = submission['answers']
+    data_map = config['data_map']
     cmd_set = []
     device_id_set = []
 
-    # ex. {"keystore_id": {"a_id": "4", "a_idx": 1}}
-    data_map = config['data_map']
+    # Get 'keystore_id' the hard way due to variable dependencies.
+    a_idx = data_map['keystore_id']['a_idx']
+    a_id = data_map['keystore_id']['a_id']
+    a_dict = answer_set[a_id]
+    keystore_id = shared.get_answer_element(config, a_dict, a_idx)
+
+    if not keystore_id:
+        log.critical('Mapping for keystore_id returned "None".  Skipping'
+            ' submission ID %s. Possible causes:\r\n  1. Null Answer is'
+            ' is permitted by JotForm. Configure a condition to prevent'
+            ' the Null Answer from being accepted for the Keystore ID'
+            ' (hostname).\r\n  2. There is an error in the data map.'
+            ' Re-run setup and validate the data mapping.', submission['id'])
+        return None, None
 
     for key, value in data_map.items():
-        q_id = answer_set[value['a_id']]
-        ans_idx = value['a_idx']
+        cmd = None
+        a_dict = answer_set[value['a_id']]
+        a_idx = value['a_idx']
+        a_data = shared.get_answer_element(config, a_dict, a_idx)
 
         if 'keystore_id' in key:
-            keystore_id = shared.get_answer_element(config, q_id, ans_idx)
             log.info('Processing submission for Keystore ID: %s', keystore_id)
-            # continue
-        elif 'idarray' in key:
-            device_id = shared.get_answer_element(config, q_id, ans_idx)
-            if device_id:
-                device_id_set.append(device_id)
-                log.debug('Device ID: %s',  device_id)
+
+        elif 'idarray_' in key:
+            if a_data:
+                device_id_set.append(a_data)
+                log.debug('Device ID: %s',  a_data)
+
         elif 'association' in key:
-            var_data = shared.get_answer_element(config, q_id, ans_idx)
-            if var_data:
-                cmd_set.append('ztp set association id ' + keystore_id
-                               + ' template ' + var_data)
-                log.debug('Association ID: %s',  var_data)
+            if a_data:
+                cmd = f'ztp set association id {keystore_id} template {a_data}'
+                log.debug('Association ID: %s',  a_data)
             else:
                 # Default answer. Clear old association, if present.
-                cmd_set.append('ztp clear association ' + keystore_id)
+                cmd = f'ztp clear association {keystore_id}'
+                log.debug('Clear Association ID.')
+
         else:
-            var_data = shared.get_answer_element(config, q_id, ans_idx)
-            var_name = key
-            if var_data:
-                cmd_set.append('ztp set keystore ' + keystore_id + ' '
-                                  + var_name + ' ' + var_data)
-                log.debug('Custom Variable: %s\t Value: %s', var_name, var_data)
+            if a_data:
+                cmd = f'ztp set keystore {keystore_id} {key} {a_data}'
+                log.debug('Custom Variable: %s\t Value: %s', key, a_data)
             else:
                 # Default answer. Clear old variable, if present.
-                cmd_set.append('ztp clear keystore ' + keystore_id + ' '
-                               + var_name)
+                cmd = f'ztp clear keystore {keystore_id} {key}'
+                log.debug('Clear Custom Variable: %s', key)
 
-    cmd_set.append('ztp set idarray ' + keystore_id + ' '
-                   + ' '.join(device_id_set))
+        # Append association and custom variable commands
+        if cmd:
+            cmd_set.append(cmd)
+
+    # Append idarray commands - 1 or more IDs
+    cmd = f'ztp set idarray {keystore_id} {" ".join(device_id_set)}'
+    cmd_set.append(cmd)
+
     log.info('Finished parsing values for %s',  keystore_id)
+
     return cmd_set, keystore_id
 
 def submission_to_csv(config, answer_set, headers, csv_data): #, data_map, headers, csv_data):
@@ -190,18 +202,18 @@ def submission_to_csv(config, answer_set, headers, csv_data): #, data_map, heade
     csv_update = {}
 
     for key, value in data_map.items():
-        q_id = answer_set[value['a_id']]
-        ans_idx = value['a_idx']
+        a_dict = answer_set[value['a_id']]
+        a_idx = value['a_idx']
+        var_data = shared.get_answer_element(config, a_dict, a_idx)
+
         if 'keystore_id' in key:
-            keystore_id = shared.get_answer_element(config, q_id, ans_idx)
+            keystore_id = var_data
             log.info('Processing submission for Keystore ID: %s',  keystore_id)
-            # continue
+
         else:
             # If func returns None, then CSV field will be cleared.
-            var_data = shared.get_answer_element(config, q_id, ans_idx)
-            var_name = key
-            csv_update.update({var_name: var_data})
-            log.debug('Variable Name: %s\tValue: %s', var_name, var_data)
+            csv_update.update({key: var_data})
+            log.debug('Variable Name: %s\tValue: %s', key, var_data)
 
     # Create partial entry if Import Unknown is enabled
     if keystore_id.upper() not in csv_data and import_unknown:
@@ -216,8 +228,8 @@ def submission_to_csv(config, answer_set, headers, csv_data): #, data_map, heade
         return headers, csv_data, False, None
 
     # Apply change list to CSV Data
-    headers, csv_data = update_csv_data(csv_data, headers,
-                                        keystore_id, csv_update)
+    args = [csv_data, headers, keystore_id, csv_update]
+    headers, csv_data = update_csv_data(*args)
 
     log.info('Finished updating CSV values for %s',  keystore_id)
     return headers, csv_data, True, keystore_id
@@ -236,10 +248,9 @@ def exec_cmds(cmd_set):
         output = process.communicate()[0]
 
     # Last command restarts ZTP. Verify status. Error check in calling code.
-    if '(running)' in output:
-        return True
-    else:
-        return False
+    success = '(running)' in output
+
+    return success
 
 def process_data(config_file, test_mode):
     """
@@ -278,16 +289,19 @@ def process_data(config_file, test_mode):
                 # Error logged in read_ext_keystore
                 sys.exit()
 
-        # Loop through all entries
         for submission in response.json()['content']:
-            # Build submission list.  Process all before marking as read.
+            # submission_ids used to mark items as 'read'
             submission_ids.append(submission['id'])
+
             ans_set = submission['answers']
+
             # Prepare ZTP updates based on keystore method: cli or csv.
             if cfg['keystore_type'] == 'cli':
-                more_cmds, keystore_id = submission_to_cli(cfg, ans_set)
-                restart_ztp = True
-                cmd_set.extend(more_cmds)
+                more_cmds, keystore_id = submission_to_cli(cfg, submission)
+                if more_cmds:
+                    restart_ztp = True
+                    cmd_set.extend(more_cmds)
+
             else:
                 headers, csv_data, change_flag, keystore_id = (
                     submission_to_csv(cfg, ans_set, headers, csv_data)
@@ -308,8 +322,8 @@ def process_data(config_file, test_mode):
 
         if restart_ztp:
             if cfg['keystore_type'] == 'csv' and csv_data:
-                # Test harness to write to alternate external keystore file
                 write_ext_keystore(cfg['csv_path'], headers, csv_data)
+
             elif cfg['keystore_type'] == 'csv' and not csv_data:
                 log.warning('Referenced keystore empty (0 bytes) and Unknown '
                     'Import disabled. Stopping script without marking new '
