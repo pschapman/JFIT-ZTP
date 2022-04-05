@@ -9,10 +9,10 @@ import logging
 # External modules.
 
 # Private modules
-from jfit_ztp import logger
-from jfit_ztp import shared
-from jfit_ztp import worker
-from jfit_ztp import setup
+from . import logger
+from . import shared
+from . import worker
+from . import setup
 
 CFG_NAME = 'datamap.json'
 LOG_NAME = 'jfit-ztp.log'

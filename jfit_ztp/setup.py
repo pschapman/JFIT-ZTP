@@ -23,17 +23,17 @@ from . import template_text as tmpl
 # Begin logging inside module, parent initializes configuration
 log = logging.getLogger(__name__)
 
-def setup(config_file, test_mode): # pylint: disable=unused-argument
+def setup(config_file, mode): # pylint: disable=unused-argument
     """
     Initial setup wizard
     """
-    cfg = shared.read_config(config_file)
-    if not cfg:
-        cfg = init_empty_cfg()
+    config = shared.file_read_config(config_file)
+    if not config:
+        config = initialize_config()
 
-    menu_main(config_file, cfg)
+    menu_main(config_file, config, mode, bc_path='')
 
-def init_empty_cfg():
+def initialize_config():
     """
     Create config variable with minimum required entries. All set None.
         Returns:
@@ -53,12 +53,14 @@ def init_empty_cfg():
               'data_map': {}}
     return config
 
-def menu_main(config_file, config):
+def menu_main(config_file, config, mode, bc_path):
     """
     Main Control Menu. All setup controlled from here.
         Parameters / Returns:
             config (dict): Current configuration data
     """
+    # Menu path breadcrumbs
+    bc_path += '\r\nMAIN'
     err_state = True
     while err_state:
         # Update dynamic menu parts
@@ -70,22 +72,22 @@ def menu_main(config_file, config):
             null_answer = config['null_answer']
         )
         print(menu)
-        selection = input('Select Menu Item: ')
+        selection = input(f'{bc_path} > ')
 
         if selection == '1':
-            config = menu_jotform_main(config)
+            config = menu_jotform_main(config, bc_path)
         elif selection == '2':
-            config = menu_keystore_main(config)
+            config = menu_keystore_main(config, bc_path)
         elif selection == '3':
-            config = menu_datamap_main(config)
+            config = menu_datamap_main(config, mode, bc_path)
         elif selection == '4':
             config = prompt_delimiter(config)
         elif selection == '5':
             config = prompt_null_answer(config)
         elif selection == '6':
-            config = menu_webex_main(config)
+            config = menu_webex_main(config, bc_path)
         elif selection == '7':
-            config = menu_webhook_main(config)
+            config = menu_webhook_main(config, bc_path)
         elif selection.lower() == 's':
             file_save_config(config_file, config)
         elif selection.lower() == 'q':
@@ -96,7 +98,7 @@ def menu_main(config_file, config):
             if ans.lower() == 'y':
                 err_state = False
 
-def menu_jotform_main(config):
+def menu_jotform_main(config, bc_path):
     """
     Jotform connection configuration menu. Key value must be hex, and 1..40
     characters.
@@ -104,6 +106,7 @@ def menu_jotform_main(config):
             config (dict): Current configuration data
     """
     print(help_text.HELP_JOTFORM_MENU)
+    bc_path += '/JOTFORM CNXN'
     err_state = True
     test_state = "Untested"
     while err_state:
@@ -114,7 +117,7 @@ def menu_jotform_main(config):
             test_result = test_state
         )
         print(menu)
-        selection = input('Select Menu Item: ')
+        selection = input(f'{bc_path} > ')
 
         if selection == '1':
             ans = input("Input API Key (Hex string): ").strip()
@@ -131,13 +134,14 @@ def menu_jotform_main(config):
 
     return config
 
-def menu_keystore_main(config):
+def menu_keystore_main(config, bc_path):
     """
     JFIT Execution Mode configuration menu.
         Parameters / Returns:
             config (dict): Current configuration data
     """
     print(help_text.HELP_KEYSTORE_CONFIG_MENU)
+    bc_path += '/KEYSTORE TYPE'
     err_state = True
     toggle_mode = config['keystore_type']
     toggle_unknown = config['import_unknown']
@@ -149,7 +153,7 @@ def menu_keystore_main(config):
             import_unknown = toggle_unknown
         )
         print(menu)
-        selection = input('Select Menu Item: ')
+        selection = input(f'{bc_path} > ')
 
         if selection == '1':
             toggle_mode = 'csv' if toggle_mode == 'cli' else 'cli'
@@ -166,13 +170,14 @@ def menu_keystore_main(config):
 
     return config
 
-def menu_datamap_main(config):
+def menu_datamap_main(config, mode, bc_path):
     """
     Webhook Notifications configuration menu.
         Parameters / Returns:
             config (dict): Current configuration data
     """
     print(help_text.HELP_DATAMAP_MAIN_MENU)
+    bc_path += '/DATAMAP MAIN'
     sample_file = 'datasample.json'
     sample, dwnld_state = file_read_sample(sample_file)
     err_state = True
@@ -183,17 +188,19 @@ def menu_datamap_main(config):
             sample_state = dwnld_state
         )
         print(menu)
-        selection = input('Select Menu Item: ')
+        selection = input(f'{bc_path} > ')
 
         if selection == '1':
             config = prompt_stack_size(config)
         elif selection == '2':
             sample, dwnld_state = select_submission(config, sample_file)
-            _ = shared.mark_submissions_read(config['api_key'], [sample['id']])
-        elif selection == '3':
-            config = menu_dm_basic_mappings(config, sample)
-        elif selection == '4':
-            config = menu_dm_custom_mappings(config, sample)
+            if mode:
+                args = (config['api_key'], [sample['id']])
+                _ = shared.mark_submissions_read(*args)
+        elif selection == '3' and sample:
+            config = menu_dm_basic_mappings(config, sample, bc_path)
+        elif selection == '4' and sample:
+            config = menu_dm_custom_mappings(config, sample, bc_path)
         elif selection.lower() == 'x':
             ans = input('Are you sure? (y/N): ')
             if ans.lower() == 'y':
@@ -205,7 +212,7 @@ def menu_datamap_main(config):
 
     return config
 
-def menu_dm_basic_mappings(config, sample):
+def menu_dm_basic_mappings(config, sample, bc_path):
     """
     Keystore ID and ID Array mapping menu.
         Parameters:
@@ -215,7 +222,7 @@ def menu_dm_basic_mappings(config, sample):
             config (dict): Updated configuration data
     """
     print(help_text.HELP_DATAMAP_MANDATORY_MENU)
-
+    bc_path += '/BASIC MAPPINGS'
     mss = int(config['max_stack_size'])
     menu_opts, meta_list = build_select_data(sample)
     data_map = config['data_map']
@@ -229,7 +236,7 @@ def menu_dm_basic_mappings(config, sample):
         while '\n\n' in menu:
             menu = menu.replace('\n\n', '\n')
         print(menu)
-        selection = input('Select Menu Item: ')
+        selection = input(f'{bc_path} > ')
 
         if selection == '1':
             var = 'keystore_id'
@@ -262,7 +269,7 @@ def menu_dm_basic_mappings(config, sample):
 
     return config
 
-def menu_dm_custom_mappings(config, sample):
+def menu_dm_custom_mappings(config, sample, bc_path):
     """
     Custom variable mapping menu.
         Parameters:
@@ -272,7 +279,7 @@ def menu_dm_custom_mappings(config, sample):
             config (dict): Updated configuration data
     """
     print(help_text.HELP_DATAMAP_CUSTOM_MENU)
-
+    bc_path += '/CUSTOM MAPPINGS'
     menu_opts, meta_list = build_select_data(sample)
     data_map = config['data_map']
 
@@ -283,7 +290,7 @@ def menu_dm_custom_mappings(config, sample):
         render_data, var_list = build_menu_dm_custom(data_map)
         menu = jinja(menus.M_DATAMAP_CUSTOM).render(settings=render_data)
         print(menu)
-        selection = input('Select Menu Item: ')
+        selection = input(f'{bc_path} > ')
 
         if selection == '1':
             var = input('Input Custom Variable Name (No spaces): ')
@@ -310,13 +317,14 @@ def menu_dm_custom_mappings(config, sample):
 
     return config
 
-def menu_webex_main(config):
+def menu_webex_main(config, bc_path):
     """
     WebEx Teams Notifications configuration menu.
         Parameters / Returns:
             config (dict): Current configuration data
     """
     print(help_text.HELP_WEBEX_MENU)
+    bc_path += '/WEBEX INTEGRATION'
     err_state = True
     test_state = "Untested"
     while err_state:
@@ -327,7 +335,7 @@ def menu_webex_main(config):
             room_id = config['room_id']
         )
         print(menu)
-        selection = input('Select Menu Item: ')
+        selection = input(f'{bc_path} > ')
 
         if selection == '1':
             ans = input("Input WebEx Teams Bot Token: ").strip()
@@ -358,13 +366,14 @@ def menu_webex_main(config):
 
     return config
 
-def menu_webhook_main(config):
+def menu_webhook_main(config, bc_path):
     """
     Webhook Notifications configuration menu.
         Parameters / Returns:
             config (dict): Current configuration data
     """
     print(help_text.HELP_WEBHOOK_URL_MENU)
+    bc_path += '/WEBHOOK INTEGRATION'
     err_state = True
     while err_state:
         # Update dynamic menu parts
@@ -372,7 +381,7 @@ def menu_webhook_main(config):
             webhook_url = config['webhook_url']
         )
         print(menu)
-        selection = input('Select Menu Item: ')
+        selection = input(f'{bc_path} > ')
 
         if selection == '1':
             ans = input("Input Webhook URL ([enter] for None): ").strip()
@@ -471,6 +480,8 @@ def prompt_stack_size(config):
     err_state = True
     while err_state:
         ans = input(f'Input max stack size. ([enter] for {current}): ')
+        if not ans:
+            ans = current
         fail = False
         try:
             i = int(ans)

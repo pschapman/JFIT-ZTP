@@ -46,7 +46,7 @@ def parse_args():
 
     return args.setup, args.test, console_log_level
 
-def read_config(config_file):
+def file_read_config(config_file):
     """
     Read config file and return dictionary. Return none if file absent.
         Parameters:
@@ -77,23 +77,50 @@ def get_new_submissions(api_key, form_id):
         Returns:
             response (str): Requests Response object with all properties.
     """
-    base_url = 'https://api.jotform.com/form/'
-    api_filter = '?filter=' + quote('{"status":"ACTIVE","new":"1"}')
-    url = (base_url + form_id + '/submissions' + api_filter)
+    base_url = 'https://api.jotform.com/form'
+    api_filter = quote('{"status":"ACTIVE","new":"1"}')
+    url = (f'{base_url}/{form_id}/submissions?filter={api_filter}')
     headers = {'APIKEY': api_key}
     payload = None
     response = requests.request('GET', url, headers=headers, data=payload)
     # Error checking in calling code.
     return response
 
-def get_answer_element(config, answer_dict, ans_idx):
+def mark_submissions_read(api_key, submission_ids):
+    """
+    Query JotForm for new Submissions
+        Parameters:
+            api_key (hex): Jotform API Key value
+            submission_ids (list): Set of Submission IDs to mark 'read'
+                ex. ['<numeric string>', '<numeric string>']
+        Returns:
+            err_state (bool): True means 1 or more updates failed.
+    """
+    err_set = None
+    err_state = False
+    headers = {'APIKEY': api_key}
+    payload = {'submission[new]': '0'}
+    for item in submission_ids:
+        url = (f'https://api.jotform.com/submission/{item}')
+        response = requests.request('POST', url, headers=headers, data=payload)
+        if response.status_code != 200:
+            err_set += f'\r\n{response.text}'
+            err_state = True
+            log.warning('HTTP response from Jotform not 200. Full response '
+                        'text:\r\n%s\r\n\r\nActual status code: %d',
+                        response.text, response.status_code)
+
+    # Error checking in calling code.
+    return err_state
+
+def get_answer_data(config, answer_dict, ans_idx):
     """
     Extract answer string. (Or answer substring, if delimiter present.)
         Parameters:
             ans_dict (dict): Jotform response data for a question
                 ex. {'text': 'Question 2', 'answer': 'myserial : mymodel'}
-            ans_idx (int): Index of sub-answer. 1 for first/only, or n for
-            specific position with delimited string.
+            ans_idx (int): Index of sub-answer. 0 for first/only, or n for
+            specific element of split string.
         Returns:
             sub_answer (str): Answer string or substring.
     """
@@ -156,7 +183,7 @@ def send_webex_msg(merge_dict, template):
     url = 'https://webexapis.com/v1/messages'
     headers = {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + bot_token
+        'Authorization': f'Bearer {bot_token}'
         }
     response = requests.request('POST', url, headers=headers, data=payload)
 
@@ -187,31 +214,3 @@ def send_webhook_msg(merge_dict, template):
         log.warning('Send to webhook failed. Response text:\r\n%s'
                     '\r\n\r\nStatus Code: %d', response.text,
                     response.status_code)
-
-def mark_submissions_read(api_key, submission_ids):
-    """
-    Query JotForm for new Submissions
-        Parameters:
-            api_key (hex): Jotform API Key value
-            submission_ids (list): Set of Submission IDs to mark 'read'
-                ex. ['<numeric string>', '<numeric string>']
-        Returns:
-            err_state (bool): True means 1 or more updates failed.
-    """
-    err_set = None
-    err_state = False
-    base_url = 'https://api.jotform.com/submission/'
-    headers = {'APIKEY': api_key}
-    payload = {'submission[new]': '0'}
-    for item in submission_ids:
-        url = (base_url + item)
-        response = requests.request('POST', url, headers=headers, data=payload)
-        if response.status_code != 200:
-            err_set += '\r\n' + response.text
-            err_state = True
-            log.warning('HTTP response from Jotform not 200. Full response '
-                        'text:\r\n%s\r\n\r\nActual status code: %d',
-                        response.text, response.status_code)
-
-    # Error checking in calling code.
-    return err_state

@@ -24,9 +24,9 @@ def process_data(config_file, test_mode):
     """
     Operational data processing
     """
-    cfg = shared.read_config(config_file)
+    cfg = shared.file_read_config(config_file)
     if not cfg:
-        # Error logged in read_config
+        # Error logged in file_read_config
         sys.exit()
 
     restart_ztp = False
@@ -48,13 +48,13 @@ def process_data(config_file, test_mode):
 
         if api_calls_left < response_count:
             log.warning('Insufficient remaining API calls to service current '
-                  'submissions.  Stopping script without processing.')
+                  'submissions. Stopping script without processing.')
             sys.exit()
 
         if cfg['keystore_type'] == 'csv':
-            headers, csv_data = read_ext_keystore(cfg['csv_path'])
+            headers, csv_data = file_read_ext_ks(cfg['csv_path'])
             if csv_data is None:
-                # Error logged in read_ext_keystore
+                # Error logged in file_read_ext_ks
                 sys.exit()
 
         for submission in response.json()['content']:
@@ -90,7 +90,7 @@ def process_data(config_file, test_mode):
 
         if restart_ztp:
             if cfg['keystore_type'] == 'csv' and csv_data:
-                write_ext_keystore(cfg['csv_path'], headers, csv_data)
+                file_write_ext_ks(cfg['csv_path'], headers, csv_data)
 
             elif cfg['keystore_type'] == 'csv' and not csv_data:
                 log.warning('Referenced keystore empty (0 bytes) and Unknown '
@@ -124,7 +124,7 @@ def process_data(config_file, test_mode):
 
     log.info('Script Execution Complete')
 
-def read_ext_keystore(ext_keystore_file):
+def file_read_ext_ks(ext_keystore_file):
     """
     Read external keystore fields / rows
         Parameters:
@@ -154,6 +154,28 @@ def read_ext_keystore(ext_keystore_file):
 
     return headers, csv_data
 
+def file_write_ext_ks(ext_keystore_file, headers, csv_data):
+    """
+    Update external keystore fields / rows from JotForm Data
+        Parameters:
+            ext_keystore_file (str): Absolute or relative path
+            headers (list): First row of CSV file
+            csv_data (dict): Row data using 'keystore_id' as key value
+                ex. {'MYHOST': {'keystore_id': 'myhost', 'var': 'value'}}
+        Returns:
+            None
+    """
+    i = 0
+
+    with open(ext_keystore_file, 'w', newline='', encoding='utf-8') as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=headers)
+        writer.writeheader()
+        # Strip off dictionary wrapper and write data
+        for value in csv_data.values():
+            writer.writerow(value)
+            i += 1
+        log.info('Wrote %d line(s) to external keystore.', i)
+
 def submission_to_cli(config, submission): # answer_set):
     """
     Generates ZTP CLI commands from JotForm Data
@@ -175,7 +197,7 @@ def submission_to_cli(config, submission): # answer_set):
     a_idx = data_map['keystore_id']['a_idx']
     a_id = data_map['keystore_id']['a_id']
     a_dict = answer_set[a_id]
-    keystore_id = shared.get_answer_element(config, a_dict, a_idx)
+    keystore_id = shared.get_answer_data(config, a_dict, a_idx)
 
     if not keystore_id:
         log.critical('Mapping for keystore_id returned "None".  Skipping'
@@ -190,7 +212,7 @@ def submission_to_cli(config, submission): # answer_set):
         cmd = None
         a_dict = answer_set[value['a_id']]
         a_idx = value['a_idx']
-        a_data = shared.get_answer_element(config, a_dict, a_idx)
+        a_data = shared.get_answer_data(config, a_dict, a_idx)
 
         if 'keystore_id' in key:
             log.info('Processing submission for Keystore ID: %s', keystore_id)
@@ -254,7 +276,7 @@ def submission_to_csv(config, answer_set, headers, csv_data):
     for key, value in data_map.items():
         a_dict = answer_set[value['a_id']]
         a_idx = value['a_idx']
-        var_data = shared.get_answer_element(config, a_dict, a_idx)
+        var_data = shared.get_answer_data(config, a_dict, a_idx)
 
         if 'keystore_id' in key:
             keystore_id = var_data
@@ -333,25 +355,3 @@ def exec_cmds(cmd_set):
     success = '(running)' in output
 
     return success
-
-def write_ext_keystore(ext_keystore_file, headers, csv_data):
-    """
-    Update external keystore fields / rows from JotForm Data
-        Parameters:
-            ext_keystore_file (str): Absolute or relative path
-            headers (list): First row of CSV file
-            csv_data (dict): Row data using 'keystore_id' as key value
-                ex. {'MYHOST': {'keystore_id': 'myhost', 'var': 'value'}}
-        Returns:
-            None
-    """
-    i = 0
-
-    with open(ext_keystore_file, 'w', newline='', encoding='utf-8') as csv_file:
-        writer = csv.DictWriter(csv_file, fieldnames=headers)
-        writer.writeheader()
-        # Strip off dictionary wrapper and write data
-        for value in csv_data.values():
-            writer.writerow(value)
-            i += 1
-        log.info('Wrote %d line(s) to external keystore.', i)
