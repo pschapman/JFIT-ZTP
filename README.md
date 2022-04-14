@@ -52,8 +52,7 @@ This procedure assumes that you have already installed freeZTP and it is running
 4. Change working directory to jfit-ztp
    1. `cd jfit-ztp`
 5. Install required external modules (if not already installed)
-   1. `pip3 install Jinja2`
-   2. `pip3 install requests`
+   1. `pip3 install -r requirements.txt`
 6. Run JFIT-ZTP setup
    1. `python3 jfit_ztp.py -s` or `python jfit_ztp.py --setup`
 7. Use Menu-based setup
