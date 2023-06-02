@@ -504,10 +504,10 @@ def select_form_id(config):
     """
     base_url = 'https://api.jotform.com/user/forms'
     api_filter = '?limit=1000&filter=' + quote('{"status":"ENABLED"}')
-    url = (base_url + api_filter)
+    url = base_url + api_filter
     headers = {'APIKEY': config['api_key']}
     payload = None
-    response = requests.request('GET', url, headers=headers, data=payload)
+    response = requests.request('GET', url, headers=headers, data=payload, timeout=10)
     form_set = {}
     if (response.status_code == 200
             and response.json()['resultSet']['count'] >= 1):
@@ -615,7 +615,7 @@ def select_room_id(config):
         'Authorization': f'Bearer {bot_token}'
         }
     payload = None
-    response = requests.request('GET', url, headers=headers, data=payload)
+    response = requests.request('GET', url, headers=headers, data=payload, timeout=10)
     room_set = {}
     if response.status_code == 200:
         for room in response.json()['items']:
@@ -708,7 +708,7 @@ def test_jotform_api_key(api_key):
     except ValueError:
         print('Answer not Hex value.')
         return None
-    response = requests.request('GET', url, headers=headers, data=payload)
+    response = requests.request('GET', url, headers=headers, data=payload, timeout=10)
     if response.status_code == 200:
         result = "Succeeded"
 
@@ -729,7 +729,7 @@ def test_webex_bot_token(bot_token):
         'Authorization': f'Bearer {bot_token}'
         }
     payload = None
-    response = requests.request('GET', url, headers=headers, data=payload)
+    response = requests.request('GET', url, headers=headers, data=payload, timeout=10)
     if response.status_code == 200:
         result = "Succeeded"
     else:

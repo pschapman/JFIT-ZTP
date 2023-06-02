@@ -79,10 +79,10 @@ def get_new_submissions(api_key, form_id):
     """
     base_url = 'https://api.jotform.com/form'
     api_filter = quote('{"status":"ACTIVE","new":"1"}')
-    url = (f'{base_url}/{form_id}/submissions?filter={api_filter}')
+    url = f'{base_url}/{form_id}/submissions?filter={api_filter}'
     headers = {'APIKEY': api_key}
     payload = None
-    response = requests.request('GET', url, headers=headers, data=payload)
+    response = requests.request('GET', url, headers=headers, data=payload, timeout=10)
     # Error checking in calling code.
     return response
 
@@ -101,8 +101,8 @@ def mark_submissions_read(api_key, submission_ids):
     headers = {'APIKEY': api_key}
     payload = {'submission[new]': '0'}
     for item in submission_ids:
-        url = (f'https://api.jotform.com/submission/{item}')
-        response = requests.request('POST', url, headers=headers, data=payload)
+        url = f'https://api.jotform.com/submission/{item}'
+        response = requests.request('POST', url, headers=headers, data=payload, timeout=10)
         if response.status_code != 200:
             err_set += f'\r\n{response.text}'
             err_state = True
@@ -185,7 +185,7 @@ def send_webex_msg(merge_dict, template):
         'Content-Type': 'application/json',
         'Authorization': f'Bearer {bot_token}'
         }
-    response = requests.request('POST', url, headers=headers, data=payload)
+    response = requests.request('POST', url, headers=headers, data=payload, timeout=10)
 
     log.debug('Attempting to send message to Teams Room')
 
@@ -206,7 +206,7 @@ def send_webhook_msg(merge_dict, template):
 
     url = merge_dict['webhook_url']
     headers = {'Content-Type': 'application/json'}
-    response = requests.request('POST', url, headers=headers, data=payload)
+    response = requests.request('POST', url, headers=headers, data=payload, timeout=10)
 
     log.debug('Trying to send message to webhook: %s', url)
 
