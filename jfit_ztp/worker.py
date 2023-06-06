@@ -352,6 +352,6 @@ def exec_cmds(cmd_set):
         output = process.communicate()[0]
 
     # Last command restarts ZTP. Verify status. Error check in calling code.
-    success = '(running)' in output
+    success = '(running)' in str(output)
 
     return success
