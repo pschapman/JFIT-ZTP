@@ -77,11 +77,11 @@ def process_data(config_file, test_mode):
                 restart_ztp = True if change_flag else restart_ztp
 
             if cfg['bot_token'] and keystore_id:
-                merge_dict = shared.build_merge_data(cfg)
+                merge_dict = shared.build_merge_data(cfg, keystore_id, submission['id'])
                 shared.send_webex_msg(merge_dict, tmpl.WEBEX_WORKER_MSG)
 
             if cfg['webhook_url'] and keystore_id:
-                merge_dict = shared.build_merge_data(cfg)
+                merge_dict = shared.build_merge_data(cfg, keystore_id, submission['id'])
                 shared.send_webhook_msg(merge_dict, tmpl.WEBHOOK_WORKER_DICT)
 
         # Post processing tasks (e.g. restart ZTP)
