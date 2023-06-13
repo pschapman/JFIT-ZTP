@@ -219,8 +219,8 @@ def submission_to_cli(config, submission): # answer_set):
 
         elif 'idarray_' in key:
             if a_data:
-                device_id_set.append(a_data)
-                log.debug('Device ID: %s',  a_data)
+                device_id_set.append(a_data.upper())
+                log.debug('Device ID: %s',  a_data.upper())
 
         elif 'association' in key:
             if a_data:
@@ -284,8 +284,12 @@ def submission_to_csv(config, answer_set, headers, csv_data):
 
         else:
             # If func returns None, then CSV field will be cleared.
-            csv_update.update({key: var_data})
-            log.debug('Variable Name: %s\tValue: %s', key, var_data)
+            if 'idarray_' in key and var_data:
+                csv_update.update({key: var_data.upper()})
+                log.debug('Variable Name: %s\tValue: %s', key, var_data.upper())
+            else:
+                csv_update.update({key: var_data})
+                log.debug('Variable Name: %s\tValue: %s', key, var_data)
 
     # Create partial entry if Import Unknown is enabled
     if keystore_id.upper() not in csv_data and import_unknown:
