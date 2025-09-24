@@ -711,6 +711,11 @@ def test_jotform_api_key(api_key):
     response = requests.request('GET', url, headers=headers, data=payload, timeout=10)
     if response.status_code == 200:
         result = "Succeeded"
+    else:
+        print(f'API Test Failure. Status Code: {response.status_code}\r\n'
+              + '\r\nResponse Text:\r\n\r\n{response.text}')
+        log.debug('Full Jotform Response (JSON):\r\n%s',
+                  json.dumps(response.json(), indent=4))
 
     return result
 

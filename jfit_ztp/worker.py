@@ -39,17 +39,18 @@ def process_data(config_file, test_mode):
     if (response.status_code == 200
             and response.json()['resultSet']['count'] >= 1):
         response_count = response.json()['resultSet']['count']
-        api_calls_left = response.json()['limit-left']
+        # 2025-09-24 - Commented out due to API change. Opened ticket with JF.
+        # api_calls_left = response.json()['limit-left']
 
         log.debug('Full Jotform Response (JSON):\r\n%s',
                   json.dumps(response.json(), indent=4))
         log.info('New Submissions: %d', response_count)
-        log.info('Remaining API Calls: %d', api_calls_left)
+        # log.info('Remaining API Calls: %d', api_calls_left)
 
-        if api_calls_left < response_count:
-            log.warning('Insufficient remaining API calls to service current '
-                  'submissions. Stopping script without processing.')
-            sys.exit()
+        # if api_calls_left < response_count:
+        #     log.warning('Insufficient remaining API calls to service current '
+        #           'submissions. Stopping script without processing.')
+        #     sys.exit()
 
         if cfg['keystore_type'] == 'csv':
             headers, csv_data = file_read_ext_ks(cfg['csv_path'])
