@@ -395,7 +395,7 @@ def menu_webhook_main(config, bc_path):
             print(f'\r\n{payload}\r\n')
         elif selection == '3':
             merge_dict = shared.build_merge_data(config)
-            shared.send_webhook_msg(config, tmpl.WEBHOOK_SETUP_DICT)
+            shared.send_webhook_msg(merge_dict, tmpl.WEBHOOK_SETUP_DICT)
         elif selection.lower() == 'h':
             print(help_text.HELP_WEBHOOK_URL_MENU)
         elif selection.lower() == 'q':
