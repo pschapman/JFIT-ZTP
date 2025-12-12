@@ -445,6 +445,9 @@ def prompt_csv_path():
         Returns:
             csv_path (str): Absolute or relative path (absolute preferred)
                 ex. '/path/to/ztp-folder/keystore.csv'
+
+    Checks for backslash and optionally replaces. Fixes Azure parsing error
+    when using PowerAutomate. Altered path is functional in Windows.
     """
     validated = False
     prompt = 'Enter explicit path to keystore file. (ex. /etc/my.csv): '
@@ -456,6 +459,11 @@ def prompt_csv_path():
             ans = input('No input. Go back to menu? (Y/n): ')
             if ans.lower() != "n":
                 return None
+
+        if '\\' in csv_path:
+            ans = input('Backslash (\\) detected. Replace with slash (/)? (Y/n): ')
+            if ans.lower() != "n":
+                csv_path = csv_path.replace('\\', '/')
 
         if path.exists(csv_path):
             validated = True
