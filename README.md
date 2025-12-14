@@ -1,11 +1,7 @@
 # JotForm Form Import Tool for freeZTP (JFIT-ZTP)
 
 ## What's New
-- Converted to Python package style
-- Removed compatibility for Python 3.5 and earlier
-- Menu Driven Setup
-- Standalone template file for external notifications
-- [Mostly] PEP compliant
+- Threaded message de-queueing to avoid rate limits for Webex / Webhook message receivers.
 
 ## Introduction
 JFIT-ZTP is a purpose built data extraction tool.  It maps answer data from JotForm to functional configuration for freeZTP.
@@ -36,11 +32,10 @@ After updates to ZTP are executed the JotForm submissions are marked "read".  Th
 ## Compatibility
 These have been tested so far.  Install instructions based on tested platforms.
 - Platforms:
-  - Debian Buster (10) and derivative distros including Ubuntu 20.04LTS and Raspbian Kernel 5 (PiOS)
+  - Debian Buster (10) and derivative distros including Ubuntu 22.04LTS and Raspbian Kernel 5 (PiOS)
   - Microsoft Windows 10 (development platform)
 - Python: 3.6 and later only
   - **This deviates from current freeZTP installation. Be sure to use 'python3' as your command executable.**
-
 
 ## Installation
 This procedure assumes that you have already installed freeZTP and it is running as expected.
@@ -77,11 +72,10 @@ This procedure assumes that you have already installed freeZTP and it is running
     5.  **NOTE:** Once per minute is recommended for active implementation.
     6.  **WARNING:** JotForm limits API calls per day, so verify you will not exceed your limit before configuring your cron job.
 
-## Open Issues for v2.0.1
+## Open Issues for v2.1
 - Some functions need additional refactoring in worker and shared modules. (Variable names and other minor inconsistencies.)
 - Refactor some functions in setup to be more DRY compliant.
 - Module DocStrings need update
-- WebEx Integrations and Webhooks require additional testing
 
 ## Future features
 - Automate manual installation steps
@@ -92,6 +86,8 @@ This procedure assumes that you have already installed freeZTP and it is running
 - Notifications integration to Slack using webhook.
 
 ## Change Log
+- **2.1 - 2025/12/14**
+  - Changed external messaging (Webex / Webhook) to threaded model to avoid rate limits and message loss. Adds 1/2 second delay between messages. Does not prevent script from moving forward to ZTP restart.
 - **2.0.1 - 2022/03/30**
   - Main executable renamed "jfit_ztp.py" to match PEP style guides.
   - Completely refactored from monolithic script to Python Package style.

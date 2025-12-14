@@ -15,7 +15,7 @@ from . import worker
 from . import setup
 
 CFG_NAME = 'datamap.json'
-LOG_NAME = 'jfit-ztp.log'
+LOG_NAME = 'jfit_ztp.log'
 F_LEV = logging.INFO
 # F_LEV = logging.DEBUG
 

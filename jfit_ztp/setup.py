@@ -9,6 +9,7 @@ import logging
 from os import path
 import json
 from urllib.parse import quote
+import threading
 
 # External modules
 import requests
@@ -30,6 +31,9 @@ def setup(config_file, mode): # pylint: disable=unused-argument
     config = shared.file_read_config(config_file)
     if not config:
         config = initialize_config()
+
+    # Start shared.send_messages as an external thread
+    threading.Thread(target=shared.send_messages, daemon=True).start()
 
     menu_main(config_file, config, mode, bc_path='')
 
@@ -347,7 +351,8 @@ def menu_webex_main(config, bc_path):
             config = select_room_id(config)
         elif selection == '4':
             merge_dict = shared.build_merge_data(config)
-            shared.send_webex_msg(merge_dict, tmpl.WEBEX_SETUP_MSG)
+            shared.ext_msg_queue.put([merge_dict, tmpl.WEBEX_SETUP_MSG])
+            shared.ext_msg_queue.join()
         elif selection.lower() == 'x':
             config['bot_token'] = None
             config['room_id'] = None
@@ -395,7 +400,8 @@ def menu_webhook_main(config, bc_path):
             print(f'\r\n{payload}\r\n')
         elif selection == '3':
             merge_dict = shared.build_merge_data(config)
-            shared.send_webhook_msg(merge_dict, tmpl.WEBHOOK_SETUP_DICT)
+            shared.ext_msg_queue.put([merge_dict, tmpl.WEBHOOK_SETUP_DICT])
+            shared.ext_msg_queue.join()
         elif selection.lower() == 'h':
             print(help_text.HELP_WEBHOOK_URL_MENU)
         elif selection.lower() == 'q':

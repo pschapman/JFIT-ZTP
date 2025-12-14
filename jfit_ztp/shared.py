@@ -10,6 +10,8 @@ import argparse
 import json
 from urllib.parse import quote
 import socket
+import queue
+import time
 
 # External modules
 import requests
@@ -17,6 +19,9 @@ from jinja2 import Template as jinja
 
 # Begin logging inside module, parent initializes configuration
 log = logging.getLogger(__name__)
+
+# Create queue for external messages
+ext_msg_queue = queue.Queue()
 
 def parse_args():
     """
@@ -166,51 +171,55 @@ def build_merge_data(cfg, ks_id=None, sub_id=None):
     merge_dict['host_fqdn'] = (socket.getfqdn().lower())
     return merge_dict
 
-def send_webex_msg(merge_dict, template):
+
+def send_messages():
     """
-    Query JotForm for new Submissions
-        Parameters:
-            markdown = '<message text in markdown format>'
-            bot_token = '<string>'
-            room_id = '<hex string>'
+    Sends messages to external services. Queue object and threading allows
+    multiple changes to be spooled out slowly and prevent message drops due to
+    rate limiting on the receiving side.
+
+    Queue contains 'merge_dict' and 'template' for each message.
     """
-    bot_token = merge_dict['bot_token']
-    room_id = merge_dict['room_id']
+    while True:
+        merge_dict, template = ext_msg_queue.get()
 
-    markdown = jinja(template).render(merge_dict)
-    payload = json.dumps({'roomId': room_id, 'markdown': markdown})
+        # Send message to Webex Teams
+        if merge_dict['bot_token']:
+            log.debug('Attempting to send message to Teams Room')
 
-    url = 'https://webexapis.com/v1/messages'
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f'Bearer {bot_token}'
-        }
-    response = requests.request('POST', url, headers=headers, data=payload, timeout=10)
+            bot_token = merge_dict['bot_token']
+            room_id = merge_dict['room_id']
 
-    log.debug('Attempting to send message to Teams Room')
+            markdown = jinja(template).render(merge_dict)
+            payload = json.dumps({'roomId': room_id, 'markdown': markdown})
 
-    if response.status_code != 200:
-        log.warning('Send to WebEx Room Failed. Response Text:\r\n%s\r\n\r\n'
-                    'Status Code: %d', response.text, response.status_code)
+            url = 'https://webexapis.com/v1/messages'
+            headers = {
+                'Content-Type': 'application/json',
+                'Authorization': f'Bearer {bot_token}'
+                }
+            response = requests.request('POST', url, headers=headers, data=payload, timeout=10)
 
-def send_webhook_msg(merge_dict, template):
-    """
-    Send HTTP POST to webhook URL
-        Parameters:
-            config (dict): Current configuration data
-            template (str): JSON payload template. Optional jinja tags.
-        Returns:
-    """
-    tmpl_json = json.dumps(template)
-    payload = jinja(tmpl_json).render(merge_dict)
+            if response.status_code != 200:
+                log.warning('Send to WebEx Room Failed. Response Text:\r\n%s\r\n\r\n'
+                            'Status Code: %d', response.text, response.status_code)
 
-    url = merge_dict['webhook_url']
-    headers = {'Content-Type': 'application/json'}
-    response = requests.request('POST', url, headers=headers, data=payload, timeout=10)
+        # Send message to webhook
+        if merge_dict['webhook_url']:
+            tmpl_json = json.dumps(template)
+            payload = jinja(tmpl_json).render(merge_dict)
+            url = merge_dict['webhook_url']
+            headers = {'Content-Type': 'application/json'}
 
-    log.debug('Trying to send message to webhook: %s', url)
+            log.debug('Trying to send message to webhook: %s', url)
 
-    if response.status_code not in range (200,299):
-        log.warning('Send to webhook failed. Response text:\r\n%s'
-                    '\r\n\r\nStatus Code: %d', response.text,
-                    response.status_code)
+            response = requests.request('POST', url, headers=headers, data=payload, timeout=10)
+
+            if response.status_code not in range (200,299):
+                log.warning('Send to webhook failed. Response text:\r\n%s'
+                            '\r\n\r\nStatus Code: %d', response.text,
+                            response.status_code)
+
+        # Pause for 1/2 second between messages to avoid rate limit
+        time.sleep(.5)
+        ext_msg_queue.task_done()

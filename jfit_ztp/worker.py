@@ -10,6 +10,7 @@ import sys
 import json
 import csv
 import subprocess
+import threading
 
 # External modules
 
@@ -35,6 +36,9 @@ def process_data(config_file, test_mode):
 
     response = shared.get_new_submissions(cfg['api_key'], cfg['form_id'])
 
+    # Start shared.send_messages as an external thread
+    threading.Thread(target=shared.send_messages, daemon=True).start()
+
     # Process data only if new entries exist
     if (response.status_code == 200
             and response.json()['resultSet']['count'] >= 1):
@@ -45,7 +49,7 @@ def process_data(config_file, test_mode):
             api_calls_left = response.json()['limit-left']
         except KeyError:
             api_calls_left = 10000000
-            log.info('JotForm excluded "limit-left from response". Continuing '
+            log.info('JotForm excluded "limit-left" from response. Continuing '
                   'without guarantee that marking "read" will succeed.')
 
         log.debug('Full Jotform Response (JSON):\r\n%s',
@@ -83,13 +87,13 @@ def process_data(config_file, test_mode):
                 )
                 restart_ztp = True if change_flag else restart_ztp
 
-            if cfg['bot_token'] and keystore_id:
-                merge_dict = shared.build_merge_data(cfg, keystore_id, submission['id'])
-                shared.send_webex_msg(merge_dict, tmpl.WEBEX_WORKER_MSG)
+            merge_dict = shared.build_merge_data(cfg, keystore_id, submission['id'])
 
-            if cfg['webhook_url'] and keystore_id:
-                merge_dict = shared.build_merge_data(cfg, keystore_id, submission['id'])
-                shared.send_webhook_msg(merge_dict, tmpl.WEBHOOK_WORKER_DICT)
+            if cfg['bot_token']:
+                shared.ext_msg_queue.put([merge_dict, tmpl.WEBEX_WORKER_MSG])
+
+            if cfg['webhook_url']:
+                shared.ext_msg_queue.put([merge_dict, tmpl.WEBHOOK_WORKER_DICT])
 
         # Post processing tasks (e.g. restart ZTP)
         log.info('All submissions processed.')
@@ -120,6 +124,10 @@ def process_data(config_file, test_mode):
 
         else:
             log.info('No data changes! ZTP not restarted.')
+
+        # Allow queued Webex / Webhook messages to finish de-queueing
+        shared.ext_msg_queue.join()
+        log.debug('External message queue has been emptied.')
 
     elif response.status_code == 200:
         log.debug('Full Jotform Response (JSON):\r\n%s',
