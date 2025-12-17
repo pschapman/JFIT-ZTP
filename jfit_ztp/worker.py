@@ -137,7 +137,7 @@ def process_data(config_file, test_mode):
         log.warning('Jotform Response & Headers (Plain):\r\n%s',
                   response.text + '\r\n\r\n' + response.headers)
 
-    log.info('Script Execution Complete')
+    log.debug('Script Execution Complete')
 
 def file_read_ext_ks(ext_keystore_file):
     """
@@ -180,7 +180,8 @@ def file_write_ext_ks(ext_keystore_file, headers, csv_data):
         Returns:
             None
     """
-    i = 0
+    # Start counting at 1 to include header row.
+    i = 1
 
     with open(ext_keystore_file, 'w', newline='', encoding='utf-8') as csv_file:
         writer = csv.DictWriter(csv_file, fieldnames=headers)
@@ -263,7 +264,7 @@ def submission_to_cli(config, submission): # answer_set):
     cmd = f'ztp set idarray {keystore_id} {" ".join(device_id_set)}'
     cmd_set.append(cmd)
 
-    log.info('Finished parsing values for %s',  keystore_id)
+    log.debug('Finished parsing values for %s',  keystore_id)
 
     return cmd_set, keystore_id
 
@@ -322,7 +323,7 @@ def submission_to_csv(config, answer_set, headers, csv_data):
     args = [csv_data, headers, keystore_id, csv_update]
     headers, csv_data = update_csv_data(*args)
 
-    log.info('Finished updating CSV values for %s',  keystore_id)
+    log.debug('Finished updating CSV values for %s',  keystore_id)
     return headers, csv_data, True, keystore_id
 
 def update_csv_data(csv_data, headers, keystore_id, csv_update):

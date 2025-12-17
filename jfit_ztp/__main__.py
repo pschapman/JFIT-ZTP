@@ -28,7 +28,7 @@ def main():
     if test_mode:
         log.info('Test Mode: No ZTP updates / JotForm left unread.')
     else:
-        log.info('Prod Mode')
+        log.debug('Prod Mode')
 
     if setup_mode:
         setup.setup(CFG_NAME, test_mode)
